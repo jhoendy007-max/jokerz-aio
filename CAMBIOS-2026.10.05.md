@@ -41,3 +41,8 @@
 - Ajuste nuevo en Settings → Discord Webhooks: **Alert cooldown (seconds)**, por defecto 300, 0 = desactivado.
 - Contador "Duplicate alerts blocked" en el panel Monitor Health.
 - Tests: `engine/alertDedupe.test.ts` (5 tests).
+
+## Tests antiguos arreglados (8)
+- Restaurado `.grok/app-env.json` (`VITE_AUTH_ENABLED: "false"`), que se perdió al empaquetar el ZIP → arregla 4 tests (with-app-env ×3, check-auth-invariant ×1).
+- 4 tests que validan la documentación interna de Grok Build (`.grok/skills/og`, no incluida en el repo) ahora se omiten si esa carpeta no existe.
+- CI: la suite completa (`npm test`) pasa a ser bloqueante.
