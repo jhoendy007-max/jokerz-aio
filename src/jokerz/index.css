@@ -1,0 +1,70 @@
+@layer base {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #222;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #7B2CBF;
+  }
+
+  body {
+    background-color: #050505;
+    color: #E0E0E0;
+  }
+}
+
+@layer utilities {
+  .jokerz-fade-in {
+    animation: jokerzFadeIn 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .jokerz-slide-up {
+    animation: jokerzSlideUp 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .jokerz-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #0c0c0c;
+    padding: 8px 10px;
+  }
+  .jokerz-table td {
+    padding: 7px 10px;
+  }
+}
+
+@keyframes jokerzFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes jokerzSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jokerz-fade-in,
+  .jokerz-slide-up {
+    animation: none;
+  }
+}
