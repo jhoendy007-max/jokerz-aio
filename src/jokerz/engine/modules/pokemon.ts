@@ -1,3 +1,4 @@
+import { recordMonitorHealth } from '../../lib/monitorHealth';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
 import { log, setStatus, sleep } from './base';
 import { jitterDelay, playAlertSound, exponentialBackoff } from '../notify';
@@ -82,6 +83,7 @@ async function checkPokemon(
     let data: any = {};
     try {
       data = res.json();
+      recordMonitorHealth('Pokemon Center', product, data);
     } catch {
       return {
         inStock: false,

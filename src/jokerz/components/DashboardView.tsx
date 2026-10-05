@@ -17,6 +17,7 @@ import {
   type DashboardStats,
 } from '../lib/storage';
 import type { EngineStats } from '../engine/types';
+import MonitorHealthPanel from './MonitorHealthPanel';
 
 function formatMoney(n: number) {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -110,7 +111,7 @@ function DashboardView() {
       {/* Header */}
       <div>
         <h1 className="text-xl font-black italic uppercase tracking-tighter text-white">Dashboard</h1>
-        <p className="text-[10px] text-[#555] mt-1 uppercase font-bold tracking-widest">Checkouts · running tasks</p>
+        <p className="text-[10px] text-[#555] mt-1 uppercase font-bold tracking-widest">Checkouts · running tasks · monitor health</p>
       </div>
 
       {/* Stat cards — 4 equal */}
@@ -137,6 +138,8 @@ function DashboardView() {
           );
         })}
       </div>
+
+      <MonitorHealthPanel />
 
       {/* Bottom: Recent + Upcoming */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

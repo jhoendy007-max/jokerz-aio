@@ -1,3 +1,4 @@
+import { recordMonitorHealth } from '../../lib/monitorHealth';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
 import { log, setStatus, sleep } from './base';
 import { jitterDelay, playAlertSound, exponentialBackoff } from '../notify';
@@ -57,6 +58,7 @@ async function checkBandaiStock(
     let data: any;
     try {
       data = res.json();
+      recordMonitorHealth('Bandai', sku, data);
     } catch {
       return { inStock: false, error: `Bad response (${res.status})` };
     }

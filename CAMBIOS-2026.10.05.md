@@ -28,3 +28,8 @@
 - Nuevo campo `proxyIgnored`: avisa si se pidió proxy pero no se pudo usar (ver nota: `undici` no está en `package.json`).
 - `createChangeTracker()`: utilidad para alertar solo en cambios (restock / cambio de precio) con cooldown, sin spam.
 - Tests: `scripts/monitor-common.test.mjs` (9 tests).
+
+## Dashboard: Monitor Health
+- Nuevo panel `MonitorHealthPanel` en el Dashboard: contadores **Rate limited** y **Proxy ignored**, tabla por tienda/producto con estado, cuenta atrás de Retry-After, nº de 429 y última actualización.
+- Aviso rojo cuando un proxy se ignora (falta `undici`).
+- `lib/monitorHealth.ts`: almacén en memoria alimentado por los módulos Walmart, Pokémon Center y Bandai.

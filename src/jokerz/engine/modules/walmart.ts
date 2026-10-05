@@ -1,3 +1,4 @@
+import { recordMonitorHealth } from '../../lib/monitorHealth';
 import { API_BASE } from '../apiBase';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
 import { log, setStatus, sleep } from './base';
@@ -216,6 +217,7 @@ async function checkWalmartStock(
         let data: any;
         try {
           data = res.json();
+          recordMonitorHealth('Walmart', sku, data);
         } catch {
           if (res.status >= 500 || res.status === 429) {
             throw Object.assign(new Error(`Bad response (${res.status})`), { status: res.status });
