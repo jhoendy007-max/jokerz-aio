@@ -63,3 +63,10 @@
 - `cryptoSessions.ts`: tipos `Uint8Array<ArrayBuffer>` para WebCrypto.
 - `storage.ts`: `maxProxyLatencyMs` declarado en `BotSettings`.
 - Quedan 6 en `antiDetect.ts` (5) y `captchaDetect.ts` (1, `pickSitekey` no existe), sin tocar.
+
+## Dashboard: Upcoming Drops
+- Panel funcional: añadir / editar / borrar lanzamientos (tienda, nombre, producto, fecha y hora, nota).
+- Cuenta atrás en vivo (morado; ámbar < 15 min; verde LIVE). Los drops se ocultan 1 h después de empezar.
+- Recordatorio opcional (5–60 min antes): alerta "DROP IN N MIN" a Discord/Slack y notificación del navegador. Se envía una sola vez; al cambiar la hora se re-arma.
+- Enlace a la página del producto si se indica URL/SKU/TCIN.
+- `lib/drops.ts` (guardado en localStorage) + `lib/drops.test.ts` (3 tests).

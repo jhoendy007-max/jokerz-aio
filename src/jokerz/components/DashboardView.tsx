@@ -12,12 +12,12 @@ import {
   saveDashboardStats,
   loadDashboardStats,
   addCheckout,
-  defaultDashboardStats,
   type StoredCheckout,
   type DashboardStats,
 } from '../lib/storage';
 import type { EngineStats } from '../engine/types';
 import MonitorHealthPanel from './MonitorHealthPanel';
+import UpcomingDropsPanel from './UpcomingDropsPanel';
 
 function formatMoney(n: number) {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -182,18 +182,7 @@ function DashboardView() {
           </div>
         </div>
 
-        {/* Upcoming drops */}
-        <div className="rounded-2xl bg-[#121212] border border-[#1c1c1c] p-5 min-h-[320px] flex flex-col">
-          <h3 className="text-[11px] font-semibold text-[#666] uppercase tracking-wider mb-4">
-            Upcoming Drops
-          </h3>
-          <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-[#222] rounded-xl">
-            <Clock size={32} className="text-[#333] mb-3" strokeWidth={1.5} />
-            <p className="text-[11px] font-medium text-[#444] uppercase tracking-wider">
-              No upcoming drops scheduled
-            </p>
-          </div>
-        </div>
+        <UpcomingDropsPanel />
       </div>
     </div>
   );

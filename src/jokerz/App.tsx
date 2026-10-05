@@ -1,4 +1,6 @@
-import { useState, useCallback, Component, type ReactNode, memo } from 'react';
+import { useState, useCallback, useEffect, Component, type ReactNode, memo } from 'react';
+import { startDropReminders } from './lib/drops';
+import { sendAlert, productPageUrl } from './engine/webhooks';
 import { AnimatePresence, motion } from 'motion/react';
 import Sidebar from './components/Sidebar';
 import DashboardView from './components/DashboardView';
@@ -66,6 +68,21 @@ const pageVariants = {
 };
 
 export default function App() {
+  // Drop reminders run app-wide (not only while the Dashboard is open).
+  useEffect(
+    () =>
+      startDropReminders((d) =>
+        sendAlert('info', {
+          store: d.store,
+          product: d.product || d.title,
+          title: d.title,
+          status: `DROP IN ${d.remindMin} MIN`,
+          extra: `${new Date(d.at).toLocaleString()}${d.note ? ` · ${d.note}` : ''}`,
+          productUrl: d.product ? (/^https?:\/\//i.test(d.product) ? d.product : productPageUrl(d.store, d.product)) : undefined,
+        }),
+      ),
+    [],
+  );
   const [activeTab, setActiveTab] = useState(() => {
     try {
       return localStorage.getItem('jokerz_active_tab') || 'dashboard';
