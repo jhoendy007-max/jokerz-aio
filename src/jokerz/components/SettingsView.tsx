@@ -255,7 +255,7 @@ export default function SettingsView() {
   const [sessionRows, setSessionRows] = useState<SessionSummary[]>([]);
 
   const [saved, setSaved] = useState(false);
-  const [managingStore, setManagingStore] = useState<string>('Target');
+  const [managingStore, setManagingStore] = useState<string | null>('Target');
   const [harvestFolderTab, setHarvestFolderTab] = useState<string>('Target');
   const [newEmail, setNewEmail] = useState('');
   const [newPass, setNewPass] = useState('');
@@ -317,16 +317,16 @@ export default function SettingsView() {
     setSettings((prev) => {
       const list = prev.harvesters || [];
       const extras = [
-        { id: 'wm-px', name: 'Walmart PX', proxy: '', module: 'walmart', enabled: false, status: 'idle' },
-        { id: 'pkc-dd', name: 'PKC DataDome', proxy: '', module: 'pokemon', enabled: false, status: 'idle' },
-        { id: 'bandai-h', name: 'Bandai', proxy: '', module: 'bandai', enabled: false, status: 'idle' },
+        { id: 'wm-px', name: 'Walmart PX', proxy: '', module: 'walmart', enabled: false, status: 'idle' as const },
+        { id: 'pkc-dd', name: 'PKC DataDome', proxy: '', module: 'pokemon', enabled: false, status: 'idle' as const },
+        { id: 'bandai-h', name: 'Bandai', proxy: '', module: 'bandai', enabled: false, status: 'idle' as const },
       ];
       if (!list.length) {
         return {
           ...prev,
           harvesters: [
-            { id: 'refract-atc', name: 'Target ATC', proxy: '', module: 'target-shape', enabled: true, status: 'idle' },
-            { id: 'refract-login', name: 'Target Login', proxy: '', module: 'target-shape-login', enabled: true, status: 'idle' },
+            { id: 'refract-atc', name: 'Target ATC', proxy: '', module: 'target-shape', enabled: true, status: 'idle' as const },
+            { id: 'refract-login', name: 'Target Login', proxy: '', module: 'target-shape-login', enabled: true, status: 'idle' as const },
             ...extras,
           ],
         };
@@ -1698,7 +1698,7 @@ export default function SettingsView() {
                     </label>
                     <select
                       value={settings.captchaProvider || 'capmonster'}
-                      onChange={(e) => update('captchaProvider', e.target.value)}
+                      onChange={(e) => update('captchaProvider', e.target.value as BotSettings['captchaProvider'])}
                       className={inputClass}
                     >
                       <option value="capmonster">CapMonster (local/cloud)</option>

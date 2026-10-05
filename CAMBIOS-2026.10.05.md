@@ -56,3 +56,10 @@
 - Pausa por rate limit: si el monitor recibe 429, la tarea espera lo que indica Retry-After (30 s por defecto, mínimo el intervalo de la tarea, máximo 10 min) en lugar de reintentar enseguida. `rateLimited`/`retryAfterMs`/`proxyIgnored` ahora llegan desde el servidor hasta la tarea.
 - Errores de TypeScript: 230 → 23 (los módulos quedan a 0).
 - Tests: `engine/apiTypes.test.ts` (6 tests).
+
+## TypeScript: 23 → 6
+- Pantallas: Dashboard (`loadDashboardStats`), Profiles (ZIP opcional), Settings (`managingStore` puede ser null, `captchaProvider`, estados de harvesters), Tasks (ramas muertas del color de estado, título del log usaba `task.name` inexistente → `task.product`).
+- `proxy.ts`: `getProxyGroupStats` siempre devuelve `available`.
+- `cryptoSessions.ts`: tipos `Uint8Array<ArrayBuffer>` para WebCrypto.
+- `storage.ts`: `maxProxyLatencyMs` declarado en `BotSettings`.
+- Quedan 6 en `antiDetect.ts` (5) y `captchaDetect.ts` (1, `pickSitekey` no existe), sin tocar.

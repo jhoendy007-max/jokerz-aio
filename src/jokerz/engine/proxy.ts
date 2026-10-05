@@ -577,12 +577,12 @@ export function getProxyGroupStats(groupName?: string): {
   total: number;
   name: string;
   cooling: number;
-  available?: number;
+  available: number;
   nextAvailableMs?: number;
   mode: ProxyRotationMode;
   type?: string;
 } {
-  if (!groupName) return { total: 0, name: '', cooling: 0, mode: getRotationMode() };
+  if (!groupName) return { total: 0, name: '', cooling: 0, available: 0, mode: getRotationMode() };
   const group = findGroup(groupName);
   const list = group ? listProxies(group) : [];
   const now = Date.now();

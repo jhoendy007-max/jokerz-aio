@@ -24,7 +24,7 @@ function formatMoney(n: number) {
 }
 
 function DashboardView() {
-  const [stats, setStats] = useState<DashboardStats>(() => loadDashboardStats(defaultDashboardStats));
+  const [stats, setStats] = useState<DashboardStats>(() => loadDashboardStats());
   const [checkouts, setCheckouts] = useState<StoredCheckout[]>(() => loadCheckouts());
 
   useEffect(() => {

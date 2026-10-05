@@ -131,8 +131,8 @@ function ProfilesView() {
       setFormError('Name and email are required');
       return;
     }
-    const zip = normalizeZip(form.zip);
-    if (form.zip.trim() && !isValidUsZip(zip)) {
+    const zip = normalizeZip(form.zip || '');
+    if ((form.zip || '').trim() && !isValidUsZip(zip)) {
       setFormError('ZIP must be 5 digits (33703) or ZIP+4 (33703-1234)');
       setTab('Shipping');
       return;
@@ -427,7 +427,7 @@ function ProfilesView() {
                       maxLength={10}
                       onChange={(e) => set('zip', e.target.value.replace(/[^\d-]/g, '').slice(0, 10))}
                       onBlur={() => {
-                        if (form.zip.trim()) set('zip', normalizeZip(form.zip));
+                        if ((form.zip || '').trim()) set('zip', normalizeZip(form.zip || ''));
                       }}
                     />
                   </div>

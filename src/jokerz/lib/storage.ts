@@ -248,6 +248,8 @@ export function saveAccGenTasks(tasks: AccGenTask[]) {
 export interface BotSettings {
   /** ISP proxy: rotate every N requests */
   ispRotateEveryN?: number;
+  /** Skip ISP lines slower than this avg ms (0 = off) */
+  maxProxyLatencyMs?: number;
   // General
   monitorDelay: number;
   errorDelay: number;

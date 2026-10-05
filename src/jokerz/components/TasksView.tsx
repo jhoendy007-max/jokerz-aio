@@ -214,11 +214,7 @@ const StatusBadge = memo(function StatusBadge({
                 ? 'bg-[#00FF41]/10'
                 : status === 'running'
                   ? 'bg-sky-400'
-                  : status === 'oos'
-                    ? 'bg-zinc-400'
-                    : status === 'failed'
-                      ? 'bg-[#FF4B2B]/10'
-                      : 'bg-purple-400'
+                  : 'bg-purple-400'
             }`}
           />
         )}
@@ -1556,7 +1552,7 @@ export default function TasksView() {
                     Task Logs
                   </h2>
                   <p className="text-[10px] text-[#555] font-bold uppercase tracking-widest truncate mt-0.5">
-                    {tasks.find((t) => t.id === logScreenTaskId)?.name || 'Task'} ·{' '}
+                    {tasks.find((t) => t.id === logScreenTaskId)?.product || 'Task'} ·{' '}
                     {logScreenTaskId.slice(0, 8)}
                   </p>
                 </div>
