@@ -1,3 +1,4 @@
+import { recordMonitorHealth } from '../../lib/monitorHealth';
 import { parseApi, MonitorResponseSchema, ApiResponseSchema, stockFromMonitor, rateLimitWaitMs, rlFields, type StockResult } from '../apiTypes';
 import { API_BASE } from '../apiBase';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
@@ -291,6 +292,7 @@ async function checkTargetStock(
     let data: any = {};
     try {
       data = parseApi(MonitorResponseSchema, res);
+      recordMonitorHealth('Target', tcin, data);
     } catch {
       return {
         ...rlFields(data),

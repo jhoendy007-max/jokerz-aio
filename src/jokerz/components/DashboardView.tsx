@@ -4,6 +4,7 @@ import {
   XCircle,
   CheckCircle2,
   Clock,
+  DatabaseBackup,
   Check,
 } from 'lucide-react';
 import { useEngine } from '../hooks/useEngine';
@@ -18,6 +19,8 @@ import {
 import type { EngineStats } from '../engine/types';
 import MonitorHealthPanel from './MonitorHealthPanel';
 import UpcomingDropsPanel from './UpcomingDropsPanel';
+import PriceHistoryPanel from './PriceHistoryPanel';
+import BackupDialog from './BackupDialog';
 
 function formatMoney(n: number) {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -112,13 +115,25 @@ function DashboardView() {
     },
   ];
 
+  const [showBackup, setShowBackup] = useState(false);
+
   return (
     <div className="p-5 space-y-4 max-w-[1400px] mx-auto min-h-full">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-black italic uppercase tracking-tighter text-white">Dashboard</h1>
-        <p className="text-[10px] text-[#555] mt-1 uppercase font-bold tracking-widest">Checkouts · running tasks · monitor health</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-black italic uppercase tracking-tighter text-white">Dashboard</h1>
+          <p className="text-[10px] text-[#555] mt-1 uppercase font-bold tracking-widest">Checkouts · running tasks · monitor health</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowBackup(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#1a1a1a] border border-[#262626] hover:border-[#7B2CBF] text-[11px] font-bold uppercase tracking-wide text-[#ccc] hover:text-white"
+        >
+          <DatabaseBackup size={13} /> Backup
+        </button>
       </div>
+      {showBackup && <BackupDialog onClose={() => setShowBackup(false)} />}
 
       {/* Stat cards — 4 equal */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
@@ -146,6 +161,8 @@ function DashboardView() {
       </div>
 
       <MonitorHealthPanel />
+
+      <PriceHistoryPanel />
 
       {/* Bottom: Recent + Upcoming */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

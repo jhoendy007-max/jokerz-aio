@@ -70,3 +70,14 @@
 - Recordatorio opcional (5–60 min antes): alerta "DROP IN N MIN" a Discord/Slack y notificación del navegador. Se envía una sola vez; al cambiar la hora se re-arma.
 - Enlace a la página del producto si se indica URL/SKU/TCIN.
 - `lib/drops.ts` (guardado en localStorage) + `lib/drops.test.ts` (3 tests).
+
+## Backup, proxies e historial
+- **Backup / restore** (botón "Backup" en el Dashboard): tareas, perfiles, proxies, ajustes, checkouts, estadísticas, drops e historial.
+  - Modo seguro: sin tarjeta/CVV, contraseñas/2FA, API keys, webhooks ni contraseña IMAP.
+  - Modo completo: todo, cifrado AES-256 con contraseña propia.
+  - Al importar se guarda el estado actual ("Undo last import") y un backup seguro no borra tus secretos actuales.
+  - `lib/backup.ts` + 5 tests.
+- **undici añadido** a las dependencias: los monitores ya usan de verdad el proxy configurado (antes salían por tu IP y lo marcaban como `proxyIgnored`).
+- **Historial de precio y stock** por producto (Target, Walmart, Pokémon Center, Bandai): gráfico de precio con bandas verdes cuando hay stock; precio actual, mínimo, máximo y nº de restocks. Solo guarda cambios (o 1 punto cada 15 min), máx. 60 productos × 300 puntos. Target ahora también aparece en Monitor Health.
+  - `lib/monitorHistory.ts` + 3 tests, `components/PriceHistoryPanel.tsx`.
+- Arreglado desajuste de hidratación SSR en los paneles que leen localStorage.

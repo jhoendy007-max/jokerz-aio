@@ -83,7 +83,7 @@ function MonitorHealthPanel() {
       )}
 
       {rows.length === 0 ? (
-        <div className="py-8 text-center text-[#444] text-sm">No monitor data yet — start a Walmart, Pokémon Center or Bandai task</div>
+        <div className="py-8 text-center text-[#444] text-sm">No monitor data yet — start a Target, Walmart, Pokémon Center or Bandai task</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-[11px]">

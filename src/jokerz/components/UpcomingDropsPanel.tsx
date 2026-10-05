@@ -48,7 +48,9 @@ function UpcomingDropsPanel() {
     return () => clearInterval(t);
   }, []);
 
-  const drops = visibleDrops(loadDrops(), now);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const drops = mounted ? visibleDrops(loadDrops(), now) : [];
 
   const save = () => {
     if (!form) return;

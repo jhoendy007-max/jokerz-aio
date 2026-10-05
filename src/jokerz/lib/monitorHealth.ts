@@ -16,6 +16,8 @@ export type MonitorHealth = {
   proxyIgnoredCount: number;
 };
 
+import { recordHistory } from './monitorHistory';
+
 const state = new Map<string, MonitorHealth>();
 const subs = new Set<() => void>();
 let version = 0;
@@ -40,6 +42,9 @@ export function recordMonitorHealth(store: string, product: string, data: any) {
     rateLimitedCount: (prev?.rateLimitedCount || 0) + (rateLimited ? 1 : 0),
     proxyIgnoredCount: (prev?.proxyIgnoredCount || 0) + (proxyIgnored ? 1 : 0),
   });
+  if (!rateLimited && !data.blocked && !(data.error && !data.inStock)) {
+    recordHistory({ store, product: String(product), title: data.title, price: data.price, inStock: Boolean(data.inStock), status });
+  }
   version++;
   subs.forEach((fn) => fn());
 }
