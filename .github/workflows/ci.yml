@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests (bloqueante)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Tests de monitores, alertas y plantilla
+        run: npm run test:core
+      - name: Build
+        run: npx vite build --mode development
+
+  checks:
+    name: Typecheck / lint / suite completa (informativo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck
+        run: npx tsc --noEmit
+        continue-on-error: true
+      - name: Lint
+        run: npx eslint .
+        continue-on-error: true
+      - name: Suite completa
+        run: npm test
+        continue-on-error: true
