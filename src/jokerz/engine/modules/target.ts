@@ -1,3 +1,4 @@
+import { parseApi, MonitorResponseSchema, ApiResponseSchema, stockFromMonitor, rateLimitWaitMs, rlFields, type StockResult } from '../apiTypes';
 import { API_BASE } from '../apiBase';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
 import { log, setStatus, sleep } from './base';
@@ -118,7 +119,7 @@ async function injectBankCookies(
       },
       signal,
     });
-    const data = await res.json();
+    const data = parseApi(ApiResponseSchema, res);
     const st = getRotState(taskId);
     if (data.ok && data.injected > 0) {
       if (opts?.requireSameProxy !== false && proxy && data.sameProxy === false) {
@@ -249,25 +250,6 @@ function normalizeProxyClient(proxy?: string): string | undefined {
   return p;
 }
 
-interface StockResult {
-  inStock: boolean;
-  blocked?: boolean;
-  rateLimited?: boolean;
-  retryAfterMs?: number;
-  price?: string;
-  title?: string;
-  quantity?: number;
-  ms?: number;
-  error?: string;
-  availabilityStatus?: string;
-  source?: string;
-  via?: string;
-      unknown?: boolean;
-  fingerprint?: any;
-  setCookie?: string[];
-  tcin?: string;
-  finalUrl?: string;
-}
 
 async function checkTargetStock(
 
@@ -276,7 +258,7 @@ async function checkTargetStock(
   proxy?: string,
   cookie?: string,
   sessionId?: string,
-  extra?: { storeId?: string; zip?: string }
+  extra?: { storeId?: string; zip?: string; proxies?: string[] }
 ): Promise<StockResult> {
   try {
     const res = await httpRequest(`${API_BASE}/api/monitor/target`, {
@@ -308,9 +290,10 @@ async function checkTargetStock(
 
     let data: any = {};
     try {
-      data = res.json();
+      data = parseApi(MonitorResponseSchema, res);
     } catch {
       return {
+        ...rlFields(data),
         inStock: false,
         error: `Bad JSON from API (${res.status}) — restart npm run server after update`,
         tcin,
@@ -319,6 +302,7 @@ async function checkTargetStock(
 
     if (res.status === 0 || (res.status >= 500 && !data?.ok)) {
       return {
+        ...rlFields(data),
         inStock: false,
         error:
           data?.error ||
@@ -330,6 +314,7 @@ async function checkTargetStock(
     // CORS / network often status 0
     if (!res.ok && !data.ok && !data.availabilityStatus && data.error) {
       return {
+        ...rlFields(data),
         inStock: false,
         error: data.error,
         blocked: !!data.blocked,
@@ -340,6 +325,7 @@ async function checkTargetStock(
     }
 
     return {
+      ...rlFields(data),
       inStock: !!data.inStock,
       quantity: typeof data.quantity === 'number' ? data.quantity : undefined,
       price: data.price,
@@ -462,7 +448,7 @@ async function loginTargetOnTask(
     signal,
     timeoutMs: 180000,
   });
-  const ld: any = await lr.json();
+  const ld = parseApi(ApiResponseSchema, lr);
   if (!ld.ok) throw new Error(ld.message || ld.error || 'Login failed');
   absorbPlaywrightCookies(id, ld.cookies, {
     proxy,
@@ -500,7 +486,7 @@ async function loginTargetOnTask(
       signal,
       timeoutMs: 15000,
     });
-    const hd: any = await hr.json().catch(() => ({}));
+    const hd: any = parseApi(ApiResponseSchema, hr);
     log(
       emit,
       id,
@@ -542,7 +528,7 @@ export const TargetModule: StoreModule = {
       signal,
       timeoutMs: 20000,
     });
-    const data: any = await res.json().catch(() => ({}));
+    const data: any = parseApi(ApiResponseSchema, res);
     log(emit, id, data.ok ? 'info' : 'warn', data.message || data.error || `keepalive HTTP ${res.status}`);
   },
 
@@ -705,6 +691,14 @@ export const TargetModule: StoreModule = {
               proxies: moreProxies,
             }
           );
+          // Honor server 429 / Retry-After: pause this task instead of retrying immediately.
+          const rlWait = rateLimitWaitMs(result, pollDelay);
+          if (rlWait > 0) {
+            log(emit, id, 'warn', `RATE LIMITED (429) · pausing ${Math.round(rlWait / 1000)}s${result.retryAfterMs ? ' (Retry-After)' : ''}`);
+            setStatus(emit, id, 'running', `Rate limited · retry in ${Math.round(rlWait / 1000)}s`);
+            await sleep(rlWait, signal);
+            continue;
+          }
           // Hard reject if API returned a different tcin
           if (result.tcin && String(result.tcin).replace(/\D/g, '') !== String(tcin).replace(/\D/g, '')) {
             log(
@@ -808,7 +802,7 @@ export const TargetModule: StoreModule = {
               : '';
             if (result.fingerprint?.signalDetails?.length) {
               const top = result.fingerprint.signalDetails.slice(0, 3)
-                .map((s) => s.what)
+                .map((s: { what: string }) => s.what)
                 .join(' | ');
               log(emit, id, 'warn', `FP signals: ${top}`);
               if ((result.fingerprint as any)?.browserFingerprint) {
@@ -1249,7 +1243,7 @@ export const TargetModule: StoreModule = {
         },
         signal,
       });
-      let data = await res.json();
+      let data = parseApi(ApiResponseSchema, res);
 
       // Unified stage → UI status (matches server [target-status] logs)
       const stage = String(data.stage || '');
@@ -1282,7 +1276,7 @@ export const TargetModule: StoreModule = {
         setStatus(emit, id, 'carted', data.message || 'In cart');
         if (!wantPlaceOrder) {
           log(emit, id, 'success', `DRY-RUN PASS · CART VISIBLE · Chrome stays on /cart · ${data.cartTitle || data.message || ''}`);
-          emit({ type: 'CHECKOUT_SUCCESS', taskId: id, data: { ...data, dryRun: true } });
+          emit({ type: 'CHECKOUT_SUCCESS', taskId: id, data: { orderNumber: data.orderNumber || 'DRY-RUN', product: task.product, store: 'Target', profile: task.profileId, price: data.price || '—', quantity: task.quantity, dryRun: true } });
           return;
         }
       }
@@ -1290,7 +1284,7 @@ export const TargetModule: StoreModule = {
         setStatus(emit, id, 'checkout', data.stage === 'needs_3ds' || data.stage === 'waiting_3ds' ? 'Waiting 3DS' : 'Checkout');
         if (!wantPlaceOrder && data.stage === 'checkout') {
           log(emit, id, 'success', `DRY-RUN PASS · reached checkout page · no place order`);
-          emit({ type: 'CHECKOUT_SUCCESS', taskId: id, data: { ...data, dryRun: true } });
+          emit({ type: 'CHECKOUT_SUCCESS', taskId: id, data: { orderNumber: data.orderNumber || 'DRY-RUN', product: task.product, store: 'Target', profile: task.profileId, price: data.price || '—', quantity: task.quantity, dryRun: true } });
           return;
         }
         if (data.stage === 'needs_3ds' || data.stage === 'waiting_3ds') {
@@ -1305,7 +1299,18 @@ export const TargetModule: StoreModule = {
       }
       if (data.stage === 'ordered') {
         setStatus(emit, id, 'success', data.orderNumber ? `Order ${data.orderNumber}` : 'Ordered');
-        emit({ type: 'CHECKOUT_SUCCESS', taskId: id, data });
+        emit({
+          type: 'CHECKOUT_SUCCESS',
+          taskId: id,
+          data: {
+            orderNumber: data.orderNumber || `TGT-${Date.now()}`,
+            product: task.product,
+            store: 'Target',
+            profile: task.profileId,
+            price: data.price || '—',
+            quantity: task.quantity,
+          },
+        });
         return;
       }
 
@@ -1373,7 +1378,7 @@ export const TargetModule: StoreModule = {
             },
             signal,
           });
-          data = await res2.json();
+          data = parseApi(ApiResponseSchema, res2);
           log(emit, id, 'info', `ATC recovery stage: ${data.stage || 'unknown'}`);
         } catch (e: any) {
           if (e?.name === 'AbortError') throw e;

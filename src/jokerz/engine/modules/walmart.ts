@@ -1,3 +1,4 @@
+import { parseApi, MonitorResponseSchema, ApiResponseSchema, stockFromMonitor, rateLimitWaitMs, rlFields, type StockResult } from '../apiTypes';
 import { recordMonitorHealth } from '../../lib/monitorHealth';
 import { API_BASE } from '../apiBase';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
@@ -79,7 +80,7 @@ async function injectBankCookies(
       },
       signal,
     });
-    const data = await res.json();
+    const data = parseApi(ApiResponseSchema, res);
     const st = getRotState(taskId);
     if (data.ok && data.injected > 0) {
       st.lastRotateAt = Date.now();
@@ -167,21 +168,6 @@ async function maybeRotateCookies(opts: {
 }
 
 
-interface StockResult {
-  inStock: boolean;
-  finalUrl?: string;
-  inQueue?: boolean;
-  price?: string;
-  title?: string;
-  ms?: number;
-  error?: string;
-  availabilityStatus?: string;
-  offerId?: string;
-  source?: string;
-  blocked?: boolean;
-  fingerprint?: any;
-  setCookie?: string[];
-}
 
 async function checkWalmartStock(
   sku: string,
@@ -216,7 +202,7 @@ async function checkWalmartStock(
 
         let data: any;
         try {
-          data = res.json();
+          data = parseApi(MonitorResponseSchema, res);
           recordMonitorHealth('Walmart', sku, data);
         } catch {
           if (res.status >= 500 || res.status === 429) {
@@ -243,6 +229,7 @@ async function checkWalmartStock(
         }
 
         return {
+          ...rlFields(data),
           inStock: !!data.inStock,
           inQueue: !!data.inQueue,
           price: data.price,
@@ -348,7 +335,7 @@ export const WalmartModule: StoreModule = {
       signal,
       timeoutMs: 180000,
     });
-    const ld: any = await lr.json();
+    const ld = parseApi(ApiResponseSchema, lr);
     if (!ld.ok && !ld.fromCache) throw new Error(ld.error || ld.message || 'Walmart login failed');
     log(emit, id, 'success', ld.fromCache ? `Sticky · ${account.email}` : `Logged in · ${account.email}`);
     try {
@@ -485,6 +472,14 @@ export const WalmartModule: StoreModule = {
             cookieHeader(id),
             monitorSessionId
           );
+          // Honor server 429 / Retry-After: pause this task instead of retrying immediately.
+          const rlWait = rateLimitWaitMs(result, pollDelay);
+          if (rlWait > 0) {
+            log(emit, id, 'warn', `RATE LIMITED (429) · pausing ${Math.round(rlWait / 1000)}s${result.retryAfterMs ? ' (Retry-After)' : ''}`);
+            setStatus(emit, id, 'running', `Rate limited · retry in ${Math.round(rlWait / 1000)}s`);
+            await sleep(rlWait, signal);
+            continue;
+          }
           recordProxyResult(proxy, {
             ok: !result.error && !result.blocked,
             blocked: !!result.blocked || /blocked|429/i.test(result.error || ''),
@@ -554,7 +549,7 @@ export const WalmartModule: StoreModule = {
               : '';
             if (result.fingerprint?.signalDetails?.length) {
               const top = result.fingerprint.signalDetails.slice(0, 3)
-                .map((s) => s.what)
+                .map((s: { what: string }) => s.what)
                 .join(' | ');
               log(emit, id, 'warn', `FP signals: ${top}`);
               if ((result.fingerprint as any)?.browserFingerprint) {
@@ -816,7 +811,7 @@ export const WalmartModule: StoreModule = {
           },
           signal,
         });
-        const ld = await lr.json();
+        const ld = parseApi(ApiResponseSchema, lr);
         if (ld.ok) log(emit, id, 'success', ld.message || 'Login OK');
         else log(emit, id, 'warn', ld.message || ld.error || 'Login soft-fail');
       } catch (e: any) {
@@ -875,7 +870,7 @@ export const WalmartModule: StoreModule = {
         },
         signal,
       });
-      const data = await res.json();
+      const data = parseApi(ApiResponseSchema, res);
 
       if (data.stage === 'blocked') {
         setStatus(emit, id, 'failed', 'Blocked');
@@ -902,7 +897,7 @@ export const WalmartModule: StoreModule = {
       }
       if (data.stage === 'atc_failed' || data.stage === 'error' || data.stage === 'login_required') {
         setStatus(emit, id, 'failed', data.stage);
-        log(emit, id, 'error', data.message || data.stage);
+        log(emit, id, 'error', data.message || data.stage || '');
         emit({ type: 'CHECKOUT_FAILED', taskId: id, reason: data.message || data.stage });
         return;
       }
@@ -910,7 +905,7 @@ export const WalmartModule: StoreModule = {
       if (data.stage === 'ordered') {
         const orderNo = data.orderNumber || `WM-CONFIRMED-${itemId}`;
         setStatus(emit, id, 'success', 'Order placed');
-        log(emit, id, 'success', data.orderNumber ? `Order ${data.orderNumber}` : data.message);
+        log(emit, id, 'success', data.orderNumber ? `Order ${data.orderNumber}` : data.message || '');
         emit({
           type: 'CHECKOUT_SUCCESS',
           taskId: id,
@@ -946,7 +941,7 @@ export const WalmartModule: StoreModule = {
         setStatus(emit, id, 'carted', 'In cart');
         if (!(task as any).liveCheckout) {
           log(emit, id, 'success', data.message || 'Dry-run cart');
-          emit({ type: 'CHECKOUT_SUCCESS', taskId: id, data: { ...data, dryRun: true } });
+          emit({ type: 'CHECKOUT_SUCCESS', taskId: id, data: { orderNumber: data.orderNumber || 'DRY-RUN', product: task.product, store: 'Walmart', profile: task.profileId, price: data.price || '—', quantity: task.quantity, dryRun: true } });
         } else {
           log(emit, id, 'warn', 'LIVE ended IN CART — payment did not run');
         }
@@ -954,7 +949,7 @@ export const WalmartModule: StoreModule = {
       }
       if (data.ok && data.stage !== 'ordered') {
         setStatus(emit, id, 'checkout', data.stage || 'checkout');
-        log(emit, id, 'info', data.message || data.stage);
+        log(emit, id, 'info', data.message || data.stage || '');
         return;
       }
 

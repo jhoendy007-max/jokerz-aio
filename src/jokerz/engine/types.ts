@@ -31,6 +31,7 @@ export interface CheckoutResult {
   profile: string;
   price: string;
   quantity: number;
+  dryRun?: boolean;
 }
 
 export interface EngineStats {

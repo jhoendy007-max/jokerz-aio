@@ -1,3 +1,5 @@
+import { parseApi, MonitorResponseSchema, ApiResponseSchema, stockFromMonitor, rateLimitWaitMs, rlFields, type StockResult } from '../apiTypes';
+type MonitorResult = StockResult;
 import { recordMonitorHealth } from '../../lib/monitorHealth';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
 import { log, setStatus, sleep } from './base';
@@ -17,25 +19,6 @@ import { getActiveProfileForStore } from '../fingerprintProfiles';
 
 import { API_BASE } from '../apiBase';
 
-interface MonitorResult {
-  inStock: boolean;
-  inQueue?: boolean;
-  queueProvider?: string | null;
-  queuePosition?: number;
-  price?: string;
-  title?: string;
-  error?: string;
-  ms?: number;
-  availabilityStatus?: string;
-  source?: string;
-  confidence?: string;
-  parseSignals?: string[];
-  blocked?: boolean;
-  setCookie?: string[];
-  fingerprint?: { provider?: string | null; signals?: string[]; confidence?: string; summary?: string; signalDetails?: { id: string; what: string; severity: string }[] };
-  finalUrl?: string;
-  via?: string;
-}
 
 /** host:port:user:pass → user:pass@host:port */
 function normalizeProxyClient(proxy?: string): string | undefined {
@@ -82,10 +65,11 @@ async function checkPokemon(
 
     let data: any = {};
     try {
-      data = res.json();
+      data = parseApi(MonitorResponseSchema, res);
       recordMonitorHealth('Pokemon Center', product, data);
     } catch {
       return {
+        ...rlFields(data),
         inStock: false,
         error: `Bad JSON from API (${res.status}) — restart npm run server after update`,
       };
@@ -93,6 +77,7 @@ async function checkPokemon(
 
     if (res.status === 0 || (res.status >= 500 && !data?.ok && !data?.availabilityStatus)) {
       return {
+        ...rlFields(data),
         inStock: false,
         error:
           data?.error ||
@@ -102,6 +87,7 @@ async function checkPokemon(
 
     if (!data.ok && data.error) {
       return {
+        ...rlFields(data),
         inStock: false,
         inQueue: !!data.inQueue,
         error: data.error,
@@ -115,6 +101,7 @@ async function checkPokemon(
     }
 
     return {
+      ...rlFields(data),
       inStock: !!data.inStock,
       inQueue: !!data.inQueue,
       queueProvider: data.queueProvider,
@@ -266,6 +253,14 @@ export const PokemonModule: StoreModule = {
             cookie: cookieHeader(id) || undefined,
             sessionId: id,
           });
+          // Honor server 429 / Retry-After: pause this task instead of retrying immediately.
+          const rlWait = rateLimitWaitMs(result, pollDelay);
+          if (rlWait > 0) {
+            log(emit, id, 'warn', `RATE LIMITED (429) · pausing ${Math.round(rlWait / 1000)}s${result.retryAfterMs ? ' (Retry-After)' : ''}`);
+            setStatus(emit, id, 'running', `Rate limited · retry in ${Math.round(rlWait / 1000)}s`);
+            await sleep(rlWait, signal);
+            continue;
+          }
           recordProxyResult(proxy, {
             ok: !result.error && !result.blocked,
             blocked:
@@ -316,7 +311,7 @@ export const PokemonModule: StoreModule = {
               : '';
             if (result.fingerprint?.signalDetails?.length) {
               const top = result.fingerprint.signalDetails.slice(0, 3)
-                .map((s) => s.what)
+                .map((s: { what: string }) => s.what)
                 .join(' | ');
               log(emit, id, 'warn', `FP signals: ${top}`);
               if ((result.fingerprint as any)?.browserFingerprint) {
@@ -620,10 +615,10 @@ export const PokemonModule: StoreModule = {
         },
         signal,
       });
-      const data = await res.json();
+      const data = parseApi(ApiResponseSchema, res);
       if (data.stage === 'ordered' && data.ok) {
         setStatus(emit, id, 'success', 'Order placed');
-        log(emit, id, 'success', data.orderNumber ? `Order ${data.orderNumber}` : data.message);
+        log(emit, id, 'success', data.orderNumber ? `Order ${data.orderNumber}` : data.message || '');
         emit({
           type: 'CHECKOUT_SUCCESS',
           taskId: id,
@@ -642,7 +637,7 @@ export const PokemonModule: StoreModule = {
         setStatus(emit, id, 'carted', 'In cart');
         log(emit, id, 'success', data.message || 'Guest ATC');
         if (!(task as any).liveCheckout) {
-          emit({ type: 'CHECKOUT_SUCCESS', taskId: id, data: { ...data, dryRun: true } });
+          emit({ type: 'CHECKOUT_SUCCESS', taskId: id, data: { orderNumber: data.orderNumber || 'DRY-RUN', product: task.product, store: 'Pokemon Center', profile: task.profileId, price: data.price || '—', quantity: task.quantity, dryRun: true } });
         }
         return;
       }

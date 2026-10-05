@@ -1,3 +1,4 @@
+import { parseApi, MonitorResponseSchema, ApiResponseSchema, stockFromMonitor, rateLimitWaitMs, rlFields, type StockResult } from '../apiTypes';
 import { recordMonitorHealth } from '../../lib/monitorHealth';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
 import { log, setStatus, sleep } from './base';
@@ -17,18 +18,6 @@ import { getActiveProfileForStore } from '../fingerprintProfiles';
 
 import { API_BASE } from '../apiBase';
 
-interface StockResult {
-  inStock: boolean;
-  price?: string;
-  title?: string;
-  error?: string;
-  ms?: number;
-  availabilityStatus?: string;
-  source?: string;
-  blocked?: boolean;
-  setCookie?: string[];
-  fingerprint?: { provider?: string | null; signals?: string[]; confidence?: string; summary?: string; signalDetails?: { id: string; what: string; severity: string }[] };
-}
 
 async function checkBandaiStock(
   sku: string,
@@ -57,7 +46,7 @@ async function checkBandaiStock(
 
     let data: any;
     try {
-      data = res.json();
+      data = parseApi(MonitorResponseSchema, res);
       recordMonitorHealth('Bandai', sku, data);
     } catch {
       return { inStock: false, error: `Bad response (${res.status})` };
@@ -65,6 +54,7 @@ async function checkBandaiStock(
 
     if (!data.ok && data.error) {
       return {
+        ...rlFields(data),
         inStock: false,
         error: data.error,
         ms: data.ms,
@@ -75,6 +65,7 @@ async function checkBandaiStock(
     }
 
     return {
+      ...rlFields(data),
       inStock: !!data.inStock,
       price: data.price,
       title: data.title,
@@ -206,6 +197,14 @@ export const BandaiModule: StoreModule = {
             cookieHeader(id),
             monitorSessionId
           );
+          // Honor server 429 / Retry-After: pause this task instead of retrying immediately.
+          const rlWait = rateLimitWaitMs(result, pollDelay);
+          if (rlWait > 0) {
+            log(emit, id, 'warn', `RATE LIMITED (429) · pausing ${Math.round(rlWait / 1000)}s${result.retryAfterMs ? ' (Retry-After)' : ''}`);
+            setStatus(emit, id, 'running', `Rate limited · retry in ${Math.round(rlWait / 1000)}s`);
+            await sleep(rlWait, signal);
+            continue;
+          }
           recordProxyResult(proxy, {
             ok: !result.error && !result.blocked,
             blocked: !!result.blocked || /blocked|429/i.test(result.error || ''),
@@ -254,7 +253,7 @@ export const BandaiModule: StoreModule = {
               : '';
             if (result.fingerprint?.signalDetails?.length) {
               const top = result.fingerprint.signalDetails.slice(0, 3)
-                .map((s) => s.what)
+                .map((s: { what: string }) => s.what)
                 .join(' | ');
               log(emit, id, 'warn', `FP signals: ${top}`);
               if ((result.fingerprint as any)?.browserFingerprint) {
@@ -497,7 +496,7 @@ export const BandaiModule: StoreModule = {
         },
         signal,
       });
-      const data = await res.json();
+      const data = parseApi(ApiResponseSchema, res);
       log(
         emit,
         id,
@@ -523,7 +522,7 @@ export const BandaiModule: StoreModule = {
         return;
       }
       if (data.stage === 'cart' || data.stage === 'checkout') {
-        setStatus(emit, id, data.stage === 'cart' ? 'carted' : 'checkout', data.message || data.stage);
+        setStatus(emit, id, data.stage === 'cart' ? 'carted' : 'checkout', data.message || data.stage || '');
         if (!data.ok) {
           emit({ type: 'CHECKOUT_FAILED', taskId: id, reason: data.message || data.stage });
         }

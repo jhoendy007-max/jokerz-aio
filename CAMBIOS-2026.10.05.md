@@ -46,3 +46,13 @@
 - Restaurado `.grok/app-env.json` (`VITE_AUTH_ENABLED: "false"`), que se perdió al empaquetar el ZIP → arregla 4 tests (with-app-env ×3, check-auth-invariant ×1).
 - 4 tests que validan la documentación interna de Grok Build (`.grok/skills/og`, no incluida en el repo) ahora se omiten si esa carpeta no existe.
 - CI: la suite completa (`npm test`) pasa a ser bloqueante.
+
+## Estabilización de módulos (1 + 2 + 4)
+- `engine/apiTypes.ts`: `StockResult` único para Target/Walmart/Pokémon/Bandai (antes 4 copias distintas) y esquemas `zod` para las respuestas de `/api/monitor/*` y `/api/checkout/*`.
+- `parseApi()` nunca lanza: JSON inválido o forma incorrecta → `{ ok:false, error }`; solo descarta el campo inválido y conserva el resto. Convierte precios numéricos a `"$12.34"`.
+- Bug corregido: `res.json().catch(...)` en Target (keepalive y task-bind) — `json()` es síncrono, así que el `.catch` lanzaba TypeError siempre.
+- Bug corregido: el checkout de Target emitía la respuesta cruda del servidor → el Dashboard mostraba "Unknown" en tienda/producto.
+- Bug corregido: los dry-runs contaban como checkouts reales y sumaban al gasto total del Dashboard. Ahora se muestran como "(dry run)" sin contar.
+- Pausa por rate limit: si el monitor recibe 429, la tarea espera lo que indica Retry-After (30 s por defecto, mínimo el intervalo de la tarea, máximo 10 min) en lugar de reintentar enseguida. `rateLimited`/`retryAfterMs`/`proxyIgnored` ahora llegan desde el servidor hasta la tarea.
+- Errores de TypeScript: 230 → 23 (los módulos quedan a 0).
+- Tests: `engine/apiTypes.test.ts` (6 tests).

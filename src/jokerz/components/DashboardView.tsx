@@ -60,6 +60,12 @@ function DashboardView() {
       price: data.price || formatMoney(priceNum),
       ts: Date.now(),
     };
+    if (data.dryRun) {
+      // Dry runs are shown but never counted as real checkouts / spend.
+      entry.product = `${entry.product} (dry run)`;
+      setCheckouts((prev) => [entry, ...prev].slice(0, 50));
+      return;
+    }
     addCheckout(entry);
     setCheckouts((prev) => [entry, ...prev].slice(0, 50));
     setStats((prev) => ({
