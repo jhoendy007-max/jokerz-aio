@@ -2,6 +2,12 @@ import { loadSettings } from '../lib/storage';
 
 export type WebhookKind = 'queue' | 'stock' | 'success' | 'decline' | 'info' | 'price' | 'ban';
 
+import { createAlertDedupe } from './alertDedupe';
+
+const alertDedupe = createAlertDedupe();
+export const getAlertDedupeStats = () => alertDedupe.stats();
+export const resetAlertDedupe = () => alertDedupe.reset();
+
 export interface WebhookPayload {
   store: string;
   product: string;
@@ -390,7 +396,13 @@ export async function sendSlackWebhook(
 export async function sendAlert(
   kind: WebhookKind,
   data: WebhookPayload
-): Promise<{ discord: boolean; slack: boolean }> {
+): Promise<{ discord: boolean; slack: boolean; suppressed?: boolean }> {
+  const sec = Number((loadSettings() as { alertCooldownSec?: number }).alertCooldownSec ?? 300);
+  const gate = alertDedupe.check(kind, data, Date.now(), Number.isFinite(sec) ? sec * 1000 : 300_000);
+  if (!gate.send) {
+    console.debug(`[alerts] suppressed ${kind} ${data.store} ${data.product}: ${gate.reason}`);
+    return { discord: false, slack: false, suppressed: true };
+  }
   const [discord, slack] = await Promise.all([
     sendDiscordWebhook(kind, data),
     sendSlackWebhook(kind, data),

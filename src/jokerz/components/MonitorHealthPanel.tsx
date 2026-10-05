@@ -1,11 +1,12 @@
 import { memo, useEffect, useState, useSyncExternalStore } from 'react';
-import { Gauge, ShieldOff, Activity } from 'lucide-react';
+import { Gauge, ShieldOff, Activity, BellOff } from 'lucide-react';
 import {
   getMonitorHealth,
   getMonitorHealthVersion,
   subscribeMonitorHealth,
   clearMonitorHealth,
 } from '../lib/monitorHealth';
+import { getAlertDedupeStats } from '../engine/webhooks';
 
 function ago(ms: number) {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -33,6 +34,7 @@ function MonitorHealthPanel() {
   const rows = getMonitorHealth();
   const rateLimited = rows.filter((r) => r.rateLimited).length;
   const proxyIgnored = rows.filter((r) => r.proxyIgnored).length;
+  const dupes = getAlertDedupeStats().suppressed;
 
   return (
     <div className="rounded-lg bg-[#121212] border border-[#1c1c1c] p-4">
@@ -56,6 +58,12 @@ function MonitorHealthPanel() {
             title="A proxy was configured but the server could not use it (undici missing) — requests went out from your own IP"
           >
             <ShieldOff size={12} /> Proxy ignored · {proxyIgnored}
+          </span>
+          <span
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide bg-[#1a1a1a] text-[#888]"
+            title="Repeated Discord/Slack stock, price and queue alerts blocked by the cooldown (Settings → Discord Webhooks)"
+          >
+            <BellOff size={12} /> Duplicate alerts blocked · {dupes}
           </span>
           {rows.length > 0 && (
             <button

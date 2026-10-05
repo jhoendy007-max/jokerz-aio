@@ -33,3 +33,11 @@
 - Nuevo panel `MonitorHealthPanel` en el Dashboard: contadores **Rate limited** y **Proxy ignored**, tabla por tienda/producto con estado, cuenta atrás de Retry-After, nº de 429 y última actualización.
 - Aviso rojo cuando un proxy se ignora (falta `undici`).
 - `lib/monitorHealth.ts`: almacén en memoria alimentado por los módulos Walmart, Pokémon Center y Bandai.
+
+## Alertas Discord/Slack sin repeticiones
+- `engine/alertDedupe.ts` conectado en `sendAlert()`: todas las alertas de stock, precio y cola de Target, Walmart, Pokémon Center y Bandai pasan por el filtro.
+- Una sola alerta por producto aunque lo vigilen varias tareas; sin re-alertar si el stock parpadea dentro del cooldown; alertas de precio solo si el precio cambia.
+- Éxitos, declines, bans e info nunca se filtran.
+- Ajuste nuevo en Settings → Discord Webhooks: **Alert cooldown (seconds)**, por defecto 300, 0 = desactivado.
+- Contador "Duplicate alerts blocked" en el panel Monitor Health.
+- Tests: `engine/alertDedupe.test.ts` (5 tests).

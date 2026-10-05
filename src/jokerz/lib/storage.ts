@@ -295,6 +295,8 @@ export interface BotSettings {
   maxCheckoutPerStockPing: number;
   // Webhooks
   discordWebhook: string;
+  /** Seconds before the same stock/price/queue alert can repeat (0 = off). Default 300. */
+  alertCooldownSec?: number;
   slackWebhook: string;
   slackStockWebhook: string; // optional dedicated stock channel
   successWebhook: string;
@@ -414,6 +416,7 @@ export const defaultSettings: BotSettings = {
     low: 60000,
   },
   discordWebhook: '',
+  alertCooldownSec: 300,
   slackWebhook: '',
   slackStockWebhook: '',
   successWebhook: '',

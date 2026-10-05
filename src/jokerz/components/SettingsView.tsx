@@ -963,6 +963,20 @@ export default function SettingsView() {
                   </div>
                   <div>
                     <label className="text-[10px] uppercase font-bold text-[#555] mb-2 block">
+                      Alert cooldown (seconds) — no repeat stock / price / queue alerts for the same product
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={3600}
+                      value={settings.alertCooldownSec ?? 300}
+                      onChange={(e) => update('alertCooldownSec', Math.max(0, Math.min(3600, Number(e.target.value) || 0)))}
+                      placeholder="300"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-[#555] mb-2 block">
                       Success Webhook
                     </label>
                     <input
