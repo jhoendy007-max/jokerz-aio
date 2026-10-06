@@ -18,6 +18,27 @@ export const LOGIN_PAGES = {
 const STORE_NAME = { target: "Target", walmart: "Walmart", pokemon: "Pokemon Center", bandai: "Bandai" };
 const MAX_OPEN_MS = 15 * 60_000;
 
+/** Jar id of a manual session for one store + email. */
+export function manualJarId(store, email) {
+  return `manual:${storeKey(store) || "x"}:${String(email || "").trim().toLowerCase()}`;
+}
+
+/**
+ * Manual sessions live until the store's own auth cookies expire, capped at 3 days,
+ * default 12 h when the store does not say.
+ */
+export function manualExpiry(cookies = [], now = Date.now()) {
+  const auth = cookies.filter((c) => /auth|token|session|sid|login|idToken|acid|customer/i.test(String(c?.name || "")));
+  const exps = auth
+    .map((c) => Number(c.expires))
+    .filter((e) => Number.isFinite(e) && e > 0)
+    .map((e) => (e > 1e12 ? e : e * 1000))
+    .filter((e) => e > now);
+  const cap = now + 3 * 24 * 3600_000;
+  if (!exps.length) return now + 12 * 3600_000;
+  return Math.min(cap, Math.max(...exps));
+}
+
 export function storeKey(s) {
   const v = String(s || "").toLowerCase();
   if (v.includes("target")) return "target";
@@ -99,7 +120,10 @@ export async function saveManualLogin(id) {
   try {
     const cookies = await job.context.cookies();
     if (!cookies.length) return { ok: false, error: "No cookies yet — finish signing in first" };
-    persistCookies({ taskId: job.email, email: job.email, cookies, store: job.storeName });
+    const expiresAt = manualExpiry(cookies);
+    // store-specific copy (an email can have sessions on several stores) + the email jar tasks already read
+    persistCookies({ taskId: manualJarId(job.store, job.email), email: job.email, cookies, store: job.storeName, source: "manual", expiresAt });
+    persistCookies({ taskId: job.email, email: job.email, cookies, store: job.storeName, source: "manual", expiresAt });
     job.cookieCount = cookies.length;
     job.status = "saved";
     clearTimeout(job.timer);
@@ -147,6 +171,7 @@ export function accountsStatus({ loginJobs = [] } = {}) {
       cookieCount: j.cookieCount,
       lastLoginMin: j.ageMin,
       expiresAt: full?.expiresAt || null,
+      manual: full?.source === "manual",
       ...st,
     });
   }

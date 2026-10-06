@@ -35,3 +35,14 @@
 9. **Errores de login claros**: `errorCode` + `friendlyError` en las rutas de login; se ven en logs de tareas y en Live Login.
 
 Tests: `scripts/monitor-status.test.mjs` (6) y `src/jokerz/lib/monitorPolicy.test.ts` (5).
+
+## Logins más seguros y monitores compartidos
+
+- **Sesión manual primero**: si la cuenta tiene una sesión guardada con "Log in manually", los logins de Target y Walmart la usan hasta que vence (según las cookies de la tienda, máx. 3 días) sin abrir el login automático. La cuenta ya no necesita contraseña si tiene sesión manual. Etiqueta MANUAL en el panel.
+- **Un login a la vez por cuenta**: varias tareas con la misma cuenta esperan el mismo login (`scripts/login-guard.mjs`).
+- **Pausa tras fallos graves**: contraseña incorrecta (30 min), cuenta bloqueada (60), 2FA (10), bloqueo (15), límite de intentos (5). Durante la pausa no se reintenta; botón "Resume" en el panel.
+- **Alerta de login fallido** por Discord, una vez por cuenta y motivo. Columna "Last automatic login" en el panel de cuentas.
+- **Peticiones de monitor compartidas** (`scripts/monitor-coalesce.mjs`): si varias tareas vigilan el mismo producto con el mismo proxy al mismo tiempo, la tienda recibe una sola petición (reutilización máx. 1 s).
+- **Monitor Health**: columnas OK % (respuestas válidas) y Avg ms.
+- Arreglos: la clasificación de errores ya no confunde palabras como "bottom" con un bloqueo; las sesiones de distintas tiendas con el mismo correo se guardan por separado.
+- Tests: `scripts/login-guard.test.mjs` (6).

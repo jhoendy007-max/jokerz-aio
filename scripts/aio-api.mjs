@@ -11,7 +11,9 @@ import { checkPokemonStock } from "./pokemon-monitor.mjs";
 import { checkBandaiStock } from "./bandai-monitor.mjs";
 import { lookupProductImage } from "./product-image.mjs";
 import { withMonitorState, withLoginError } from "./monitor-status.mjs";
-import { startManualLogin, manualLoginStatus, saveManualLogin, cancelManualLogin, accountsStatus } from "./manual-login.mjs";
+import { startManualLogin, manualLoginStatus, saveManualLogin, cancelManualLogin, accountsStatus, storeKey as accStoreKey } from "./manual-login.mjs";
+import { guardedLogin, loginGuardStatus, clearLoginPause } from "./login-guard.mjs";
+import { coalesceMonitor, monitorCoalesceStats, monitorKey } from "./monitor-coalesce.mjs";
 import { probeProduct } from "./product-probe.mjs";
 import { runWalmartCheckout, runWalmartLogin } from "./walmart-checkout.mjs";
 import { runWalmartDrawing } from "./walmart-drawing.mjs";
@@ -299,7 +301,7 @@ export async function handleAioApi(req, res) {
       return true;
     }
     try {
-      const result = await runTargetLogin(body);
+      const result = path === "/api/target/session" ? await runTargetLogin(body) : await guardedLogin("Target", body, runTargetLogin);
       json(res, 200, result);
     } catch (e) {
       json(res, 200, { ok: false, error: e?.message || String(e) });
@@ -462,7 +464,22 @@ export async function handleAioApi(req, res) {
   }
 
   if (path === "/api/accounts/status" && method === "GET") {
-    json(res, 200, { ok: true, accounts: accountsStatus({ loginJobs: listLoginJobs() }) });
+    const guard = loginGuardStatus();
+    const accounts = accountsStatus({ loginJobs: listLoginJobs() }).map((a) => ({ ...a, ...(guard[`${accStoreKey(a.store) || "x"}|${a.email}`] || {}) }));
+    // accounts known only to the guard (failed login, no session saved)
+    for (const [k, g] of Object.entries(guard)) {
+      const [sk, email] = k.split("|");
+      if (!accounts.some((a) => a.email === email && accStoreKey(a.store) === sk)) {
+        accounts.push({ email, store: { target: "Target", walmart: "Walmart", pokemon: "Pokemon Center", bandai: "Bandai" }[sk] || sk, cookieCount: 0, state: "none", ...g });
+      }
+    }
+    json(res, 200, { ok: true, accounts, monitorSharing: monitorCoalesceStats() });
+    return true;
+  }
+
+  if (path === "/api/login/unpause" && method === "POST") {
+    const body = await readBody(req);
+    json(res, 200, { ok: true, cleared: clearLoginPause(body.store, body.email) });
     return true;
   }
 
@@ -503,11 +520,13 @@ export async function handleAioApi(req, res) {
     const body = await readBody(req);
     const tcin = String(body.tcin || body.sku || "").replace(/\D/g, "");
     try {
-      const result = await checkTargetShipping({
-        tcin,
-        zip: body.zip || body.postal || "",
-        proxy: body.proxy,
-      });
+      const result = await coalesceMonitor(monitorKey("target", { ...body, tcin }), () =>
+        checkTargetShipping({
+          tcin,
+          zip: body.zip || body.postal || "",
+          proxy: body.proxy,
+        }),
+      );
       json(res, 200, result);
     } catch (e) {
       json(res, 200, {
@@ -523,7 +542,7 @@ export async function handleAioApi(req, res) {
   if (path === "/api/monitor/walmart" && method === "POST") {
     const body = await readBody(req);
     try {
-      json(res, 200, await checkWalmartShipping({ sku: body.sku || body.product || body.tcin, proxy: body.proxy }));
+      json(res, 200, await coalesceMonitor(monitorKey("walmart", body), () => checkWalmartShipping({ sku: body.sku || body.product || body.tcin, proxy: body.proxy })));
     } catch (e) {
       json(res, 200, { ok: false, inStock: false, error: e?.message || String(e) });
     }
@@ -536,7 +555,7 @@ export async function handleAioApi(req, res) {
       json(
         res,
         200,
-        await checkPokemonStock({ url: body.url, product: body.product || body.sku, region: body.region, proxy: body.proxy })
+        await coalesceMonitor(monitorKey("pokemon", body), () => checkPokemonStock({ url: body.url, product: body.product || body.sku, region: body.region, proxy: body.proxy }))
       );
     } catch (e) {
       json(res, 200, { ok: false, inStock: false, error: e?.message || String(e) });
@@ -547,7 +566,7 @@ export async function handleAioApi(req, res) {
   if (path === "/api/monitor/bandai" && method === "POST") {
     const body = await readBody(req);
     try {
-      json(res, 200, await checkBandaiStock({ url: body.url, product: body.product || body.sku, proxy: body.proxy }));
+      json(res, 200, await coalesceMonitor(monitorKey("bandai", body), () => checkBandaiStock({ url: body.url, product: body.product || body.sku, proxy: body.proxy })));
     } catch (e) {
       json(res, 200, { ok: false, inStock: false, error: e?.message || String(e) });
     }
@@ -567,7 +586,7 @@ export async function handleAioApi(req, res) {
   if (path === "/api/walmart/login" && method === "POST") {
     const body = await readBody(req);
     try {
-      json(res, 200, await runWalmartLogin(body));
+      json(res, 200, await guardedLogin("Walmart", body, runWalmartLogin));
     } catch (e) {
       json(res, 200, { ok: false, error: e?.message || String(e) });
     }

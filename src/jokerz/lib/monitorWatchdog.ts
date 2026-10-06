@@ -57,6 +57,16 @@ export interface AccountStatus {
   minutesLeft?: number | null;
   state: 'active' | 'expiring' | 'expired' | 'pending' | 'none';
   pending?: 'manual_login' | '2fa';
+  /** session saved with "Log in manually" */
+  manual?: boolean;
+  /** last automatic login (login guard) */
+  at?: number;
+  ok?: boolean;
+  errorCode?: string;
+  friendlyError?: string;
+  pausedUntil?: number;
+  pausedMin?: number;
+  loggingIn?: boolean;
 }
 
 const SESSION_ALERTS_KEY = 'jokerz_aio_session_alerts';
@@ -113,6 +123,22 @@ async function checkSessionsOnce() {
           : `Session for ${a.email} expires in ~${a.minutesLeft ?? '?'} min`,
     }).catch(() => {});
   }
+  // failed automatic logins: one alert per account + failure
+  for (const a of list) {
+    if (a.ok !== false || !a.at || !a.errorCode) continue;
+    const k = `fail|${a.store}|${a.email}`;
+    const sig = `${a.errorCode}@${a.at}`;
+    if (sent[k] === sig || (sent[k] || '').startsWith(`${a.errorCode}@`)) continue;
+    sent[k] = sig;
+    if (settings().sessionExpiryAlerts === false) continue;
+    void sendAlert('info', {
+      store: a.store,
+      product: a.email,
+      status: 'LOGIN_FAILED',
+      extra: `${a.friendlyError || a.errorCode}${a.pausedMin ? ` · automatic login paused ${a.pausedMin} min` : ''}`,
+    }).catch(() => {});
+  }
+  for (const a of list) if (a.ok === true) delete sent[`fail|${a.store}|${a.email}`];
   try {
     localStorage.setItem(SESSION_ALERTS_KEY, JSON.stringify(sent));
   } catch {

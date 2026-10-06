@@ -112,6 +112,8 @@ function MonitorHealthPanel() {
                 <th className="py-1.5 pr-3 font-semibold">Product</th>
                 <th className="py-1.5 pr-3 font-semibold">Status</th>
                 <th className="py-1.5 pr-3 font-semibold">Why</th>
+                <th className="py-1.5 pr-3 font-semibold text-right" title="Valid responses / all responses">OK %</th>
+                <th className="py-1.5 pr-3 font-semibold text-right">Avg ms</th>
                 <th className="py-1.5 pr-3 font-semibold">Retry in</th>
                 <th className="py-1.5 pr-3 font-semibold">Proxy</th>
                 <th className="py-1.5 pr-3 font-semibold text-right">429s</th>
@@ -136,6 +138,15 @@ function MonitorHealthPanel() {
                     <td className="py-1.5 pr-3 text-[#999] truncate max-w-[280px]" title={r.stalledWhy || r.reason || ''}>
                       {r.stalled ? `${r.stalledWhy}${r.lastError ? ` · ${r.lastError}` : ''}` : r.reason || (r.errorStreak ? `${r.errorStreak} errors in a row` : '—')}
                     </td>
+                    <td
+                      className={`py-1.5 pr-3 text-right tabular-nums ${
+                        !r.total ? 'text-[#555]' : r.okCount / r.total >= 0.9 ? 'text-[#00FF41]' : r.okCount / r.total >= 0.6 ? 'text-amber-300' : 'text-[#FF4B2B]'
+                      }`}
+                      title={`${r.okCount}/${r.total} valid${r.sharedCount ? ` · ${r.sharedCount} shared with other tasks` : ''}`}
+                    >
+                      {r.total ? Math.round((r.okCount / r.total) * 100) : 0}%
+                    </td>
+                    <td className="py-1.5 pr-3 text-right tabular-nums text-[#888]">{r.avgMs != null ? r.avgMs : '—'}</td>
                     <td className="py-1.5 pr-3 tabular-nums text-amber-300">{retryLeft > 0 ? ago(retryLeft) : '—'}</td>
                     <td className="py-1.5 pr-3">
                       {r.proxyIgnored ? (

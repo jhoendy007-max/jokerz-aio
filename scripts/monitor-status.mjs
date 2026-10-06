@@ -56,7 +56,7 @@ export function classifyLoginError(text) {
     ["NEEDS_2FA", /2fa|two.?factor|verification code|one.?time code|\botp\b|enter (the )?code|totp|security code|verify it.s you/i, "The store is asking for a 2FA / verification code"],
     ["ACCOUNT_LOCKED", /locked|suspended|disabled|too many (failed )?attempts|reset your password/i, "Account locked or needs a password reset on the store's site"],
     ["RATE_LIMITED", /\b429\b|rate.?limit|too many requests|try again later/i, "Too many login attempts — wait a few minutes"],
-    ["BLOCKED", /\b403\b|blocked|captcha|access denied|perimeterx|px-captcha|shape|datadome|forbidden|bot/i, "The store blocked this login (anti-bot check). Use \"Log in manually\""],
+    ["BLOCKED", /\b403\b|blocked|captcha|access denied|perimeterx|px-captcha|shape (challenge|block)|datadome|forbidden|\bbot\b/i, "The store blocked this login (anti-bot check). Use \"Log in manually\""],
     ["TIMEOUT", /timeout|timed out|abort/i, "The store's login page did not respond in time"],
     ["NETWORK", /ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ECONNRESET|fetch failed|net::|proxy/i, "Network or proxy error"],
   ];
@@ -67,6 +67,9 @@ export function classifyLoginError(text) {
 /** Adds errorCode / friendlyError to a failed login result. */
 export function withLoginError(r) {
   if (!r || typeof r !== "object" || r.ok !== false || r.errorCode) return r;
-  const lastSteps = Array.isArray(r.steps) ? r.steps.slice(0, 5).map((s) => s?.message || "").join(" | ") : "";
-  return { ...r, ...classifyLoginError(`${r.error || r.message || ""} ${lastSteps}`) };
+  const first = classifyLoginError(r.error || r.message || "");
+  if (first.errorCode !== "UNKNOWN") return { ...r, ...first };
+  const lastSteps = Array.isArray(r.steps) ? r.steps.slice(-6).map((s) => s?.message || "").join(" | ") : "";
+  const second = classifyLoginError(`${r.error || r.message || ""} ${lastSteps}`);
+  return { ...r, ...(second.errorCode !== "UNKNOWN" ? second : first) };
 }

@@ -321,7 +321,7 @@ export const WalmartModule: StoreModule = {
       wmAccounts.find((a: any) => a.email && a.email.toLowerCase() === email.toLowerCase()) ||
       wmAccounts.find((a: any) => a.email) ||
       null;
-    if (!account?.email || !account?.pass) {
+    if (!account?.email) {
       log(emit, id, 'warn', 'No Walmart account on task — guest ATC (login skipped)');
       return;
     }
@@ -340,8 +340,12 @@ export const WalmartModule: StoreModule = {
       timeoutMs: 180000,
     });
     const ld = parseApi(ApiResponseSchema, lr);
+    if (!ld.ok && (ld as any).errorCode === 'MISSING_CREDENTIALS') {
+      log(emit, id, 'warn', `No password and no saved manual session for ${account.email} — guest ATC (login skipped)`);
+      return;
+    }
     if (!ld.ok && !ld.fromCache) throw new Error((ld as any).friendlyError || ld.error || ld.message || 'Walmart login failed');
-    log(emit, id, 'success', ld.fromCache ? `Sticky · ${account.email}` : `Logged in · ${account.email}`);
+    log(emit, id, 'success', (ld as any).manual ? `Manual session · ${account.email}` : ld.fromCache ? `Sticky · ${account.email}` : `Logged in · ${account.email}`);
     try {
       await httpRequest(`${API_BASE}/api/harvest/task-bind`, {
         method: 'POST',
@@ -803,7 +807,7 @@ export const WalmartModule: StoreModule = {
     const account =
       wmAccounts.find((a: any) => a.email && a.email === (task as any).accountEmail) ||
       wmAccounts[0];
-    if (account?.email && account?.pass) {
+    if (account?.email) {
       log(emit, id, 'info', `Walmart account login · ${account.email}`);
       setStatus(emit, id, 'running', 'Account login…');
       try {

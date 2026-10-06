@@ -28,6 +28,13 @@ export type MonitorHealth = {
   lastChangeAt?: number;
   errorStreak: number;
   lastError?: string;
+  /** responses seen / valid ones (success rate) */
+  total: number;
+  okCount: number;
+  /** average response time (ms, rolling) */
+  avgMs?: number;
+  /** answered from a request shared with another task on the server */
+  sharedCount: number;
   /** set by the watchdog */
   stalled?: boolean;
   stalledWhy?: string;
@@ -80,6 +87,13 @@ export function recordMonitorHealth(store: string, product: string, data: any) {
     lastOkAt: ok ? now : prev?.lastOkAt,
     lastChangeAt: ok && changed ? now : prev?.lastChangeAt ?? now,
     errorStreak: ok ? 0 : (prev?.errorStreak || 0) + 1,
+    total: (prev?.total || 0) + 1,
+    okCount: (prev?.okCount || 0) + (ok ? 1 : 0),
+    avgMs:
+      typeof data.ms === 'number' && !data.shared
+        ? Math.round(prev?.avgMs != null ? prev.avgMs * 0.8 + data.ms * 0.2 : data.ms)
+        : prev?.avgMs,
+    sharedCount: (prev?.sharedCount || 0) + (data.shared ? 1 : 0),
     lastError: ok ? prev?.lastError : String(data.error || data.reason || normState).slice(0, 200),
     stalled: ok ? false : prev?.stalled,
     stalledWhy: ok ? undefined : prev?.stalledWhy,

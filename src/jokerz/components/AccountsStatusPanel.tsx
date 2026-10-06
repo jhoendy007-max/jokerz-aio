@@ -136,6 +136,11 @@ export default function AccountsStatusPanel({ settings }: { settings: BotSetting
     setJob(null);
   };
 
+  const unpause = async (store: string, email: string) => {
+    await post('/api/login/unpause', { store, email }).catch(() => {});
+    void refreshAccounts();
+  };
+
   const err = getAccountsError();
 
   return (
@@ -155,7 +160,7 @@ export default function AccountsStatusPanel({ settings }: { settings: BotSetting
       </div>
       <p className="text-[11px] text-[#888]">
         "Log in manually" opens a normal browser window on the store's sign-in page. Sign in yourself (password, 2FA code, anything the store asks), then
-        press <b className="text-white">Save session</b>. The app keeps that session for the account's tasks and warns you before it expires.
+        press <b className="text-white">Save session</b>. The app keeps that session for the account's tasks (no password needed) and warns you before it expires. If an automatic login fails because of a wrong password, a locked account, a 2FA request or a block, automatic logins for that account pause for a while instead of retrying.
       </p>
 
       {job && (job.status === 'waiting' || job.status === 'opening') && (
@@ -190,6 +195,7 @@ export default function AccountsStatusPanel({ settings }: { settings: BotSetting
                 <th className="py-1.5 pr-3 font-semibold">Account</th>
                 <th className="py-1.5 pr-3 font-semibold">Session</th>
                 <th className="py-1.5 pr-3 font-semibold">Last login</th>
+                <th className="py-1.5 pr-3 font-semibold">Last automatic login</th>
                 <th className="py-1.5 font-semibold text-right"></th>
               </tr>
             </thead>
@@ -206,7 +212,31 @@ export default function AccountsStatusPanel({ settings }: { settings: BotSetting
                       {r.pending === 'manual_login' && <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-400/15 text-sky-300">LOGIN WINDOW OPEN</span>}
                       {r.state !== 'none' && r.state !== 'pending' && <span className="ml-2 text-[#888]">{left(r.minutesLeft)}</span>}
                     </td>
-                    <td className="py-1.5 pr-3 text-[#888] whitespace-nowrap">{r.state === 'none' ? '—' : ago(r.lastLoginMin)}</td>
+                    <td className="py-1.5 pr-3 text-[#888] whitespace-nowrap">
+                      {r.state === 'none' ? '—' : ago(r.lastLoginMin)}
+                      {r.manual && <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#7B2CBF]/20 text-[#C77DFF]">MANUAL</span>}
+                    </td>
+                    <td className="py-1.5 pr-3 max-w-[300px]">
+                      {r.loggingIn ? (
+                        <span className="text-sky-300">Logging in…</span>
+                      ) : r.ok === false ? (
+                        <span className="text-[#FF8A75]" title={r.errorCode}>
+                          {r.friendlyError || r.errorCode}
+                          {r.pausedMin ? (
+                            <>
+                              <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400/15 text-amber-300">PAUSED {r.pausedMin} MIN</span>
+                              <button type="button" onClick={() => unpause(r.store, r.email)} className="ml-1 text-[10px] font-bold uppercase text-[#aaa] hover:text-white underline">
+                                Resume
+                              </button>
+                            </>
+                          ) : null}
+                        </span>
+                      ) : r.ok === true ? (
+                        <span className="text-[#00FF41]">OK</span>
+                      ) : (
+                        <span className="text-[#666]">—</span>
+                      )}
+                    </td>
                     <td className="py-1.5 text-right">
                       <button
                         type="button"

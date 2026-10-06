@@ -86,7 +86,7 @@ function cookieAlive(c, now = Date.now()) {
 function pruneJar(jar, now = Date.now()) {
   if (!jar) return null;
   if (jar.expiresAt && jar.expiresAt < now) return null;
-  if (now - (jar.at || 0) > MAX_AGE_MS) return null;
+  if (jar.source !== "manual" && now - (jar.at || 0) > MAX_AGE_MS) return null;
   const cookies = (jar.cookies || []).filter((c) => cookieAlive(c, now));
   if (!cookies.length) return null;
   return { ...jar, cookies };
@@ -102,6 +102,8 @@ function putJar(store, rec) {
     cookies: Array.isArray(rec.cookies) ? rec.cookies.filter((c) => cookieAlive(c, now)) : [],
     at: rec.at || now,
     expiresAt: rec.expiresAt || now + MAX_AGE_MS,
+    /** "manual" = the user signed in themselves (Settings → Accounts → Log in manually) */
+    source: rec.source || "",
   };
   if (jar.taskId) store.byTask[jar.taskId] = jar;
   if (jar.email) store.byEmail[jar.email] = { ...jar, lastTaskId: jar.taskId };
@@ -114,9 +116,9 @@ function store() {
   return cache;
 }
 
-export function persistCookies({ taskId, email, cookies, proxy, store: shop, expiresAt } = {}) {
+export function persistCookies({ taskId, email, cookies, proxy, store: shop, expiresAt, source } = {}) {
   const s = store();
-  const jar = putJar(s, { taskId, email, cookies, proxy, store: shop, expiresAt, at: Date.now() });
+  const jar = putJar(s, { taskId, email, cookies, proxy, store: shop, expiresAt, source, at: Date.now() });
   saveStore(s);
   return jar;
 }
@@ -145,6 +147,8 @@ export function mergeCookies({ taskId, email, cookies, proxy, store: shop } = {}
     cookies: [...map.values()],
     proxy: proxy || existing?.proxy || "",
     store: shop || existing?.store || "Target",
+    source: existing?.source,
+    expiresAt: existing?.source === "manual" ? existing?.expiresAt : undefined,
   });
   return { jar, added, total: jar.cookies.length };
 }

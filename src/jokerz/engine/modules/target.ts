@@ -419,13 +419,10 @@ async function loginTargetOnTask(
 ): Promise<{ loginEmail: string; loginPass: string; proxy?: string; profile: any; account: any }> {
   const id = task.id;
   const { loginEmail, loginPass, profile, account, totp } = resolveTargetAccount(task);
-  if (!loginEmail || !loginPass) {
-    throw new Error(
-      !loginEmail
-        ? 'Pick an account on the task (Settings → Accounts = email + password)'
-        : `No password for ${loginEmail} in Settings → Accounts`
-    );
+  if (!loginEmail) {
+    throw new Error('Pick an account on the task (Settings → Accounts = email + password)');
   }
+  // No password is fine when the account has a saved manual session (Settings → Accounts → Log in manually)
   const proxy = resolveRoleProxy(task, 'login', id);
   const harvestProxy = resolveRoleProxy(task, 'harvest', id);
   const bind = proxyBindMode(task);
@@ -437,7 +434,7 @@ async function loginTargetOnTask(
       ? `Proxy SPLIT · login ${proxyRoleGroup(task, 'login')} · harvest ${proxyRoleGroup(task, 'harvest')} · checkout ${proxyRoleGroup(task, 'checkout')}`
       : `Proxy SAME · sticky ${proxyRoleGroup(task, 'login')} · login=harvest=ATC`
   );
-  log(emit, id, 'info', `Login → /login · ${loginEmail}`);
+  log(emit, id, 'info', loginPass ? `Login → /login · ${loginEmail}` : `Login → saved manual session · ${loginEmail}`);
   setStatus(emit, id, 'running', `Login ${loginEmail}…`);
   const lr = await httpRequest(`${API_BASE}/api/target/login`, {
     method: 'POST',
@@ -456,7 +453,10 @@ async function loginTargetOnTask(
   });
   const ld = parseApi(ApiResponseSchema, lr);
   if (!ld.ok) {
-    const fe = (ld as any).friendlyError as string | undefined;
+    const fe =
+      (ld as any).errorCode === 'MISSING_CREDENTIALS'
+        ? `No password for ${loginEmail} and no saved manual session — add the password or use Settings → Accounts → Log in manually`
+        : ((ld as any).friendlyError as string | undefined);
     throw new Error(fe ? `${fe}${(ld as any).errorCode ? ` [${(ld as any).errorCode}]` : ''}` : ld.message || ld.error || 'Login failed');
   }
   absorbPlaywrightCookies(id, ld.cookies, {
