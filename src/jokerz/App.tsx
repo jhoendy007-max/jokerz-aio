@@ -2,6 +2,12 @@ import { useState, useCallback, useEffect, Component, type ReactNode, memo } fro
 import { startDropReminders } from './lib/drops';
 import { startDailySummary } from './lib/dailySummaryRunner';
 import { startWatchdogs } from './lib/monitorWatchdog';
+import { startLogForwarder } from './lib/logForwarder';
+import { startRemoteControl } from './lib/remoteControl';
+import { startDropAutoStart } from './lib/drops';
+import { bus, engine } from './engine';
+import { loadTasks } from './lib/storage';
+import { taskToEngineConfig } from './lib/taskConfig';
 import { sendAlert, productPageUrl } from './engine/webhooks';
 import { AnimatePresence, motion } from 'motion/react';
 import Sidebar from './components/Sidebar';
@@ -9,6 +15,7 @@ import DashboardView from './components/DashboardView';
 import TasksView from './components/TasksView';
 import ProfilesView from './components/ProfilesView';
 import ProxiesView from './components/ProxiesView';
+import ResultsView from './components/ResultsView';
 import SettingsView from './components/SettingsView';
 import AccountGenView from './components/AccountGenView';
 
@@ -72,6 +79,21 @@ const pageVariants = {
 export default function App() {
   useEffect(() => startDailySummary(), []);
   useEffect(() => startWatchdogs(), []);
+  useEffect(() => startLogForwarder(), []);
+  useEffect(() => startRemoteControl(), []);
+  // Drop calendar: start linked MONITOR tasks a few minutes before the drop (checkout tasks are never auto-started).
+  useEffect(
+    () =>
+      startDropAutoStart((ids, d) => {
+        const tasks = loadTasks([]).filter((t) => ids.includes(t.id) && String(t.mode || '').toLowerCase().includes('monitor'));
+        if (!tasks.length) return;
+        engine.start();
+        bus.send({ type: 'CREATE_TASKS', tasks: tasks.map(taskToEngineConfig) });
+        tasks.forEach((t) => bus.send({ type: 'START_TASK', taskId: t.id }));
+        void sendAlert('info', { store: d.store, product: d.product || d.title, title: d.title, status: 'MONITORS STARTED', extra: `Started ${tasks.length} monitor task(s) ${d.autoStartMin ?? 10} min before the drop.` });
+      }),
+    [],
+  );
   // Drop reminders run app-wide (not only while the Dashboard is open).
   useEffect(
     () =>
@@ -113,6 +135,8 @@ export default function App() {
         return <ProfilesView />;
       case 'proxies':
         return <ProxiesView />;
+      case 'results':
+        return <ResultsView />;
       case 'account-gen':
         return <AccountGenView />;
       case 'settings':

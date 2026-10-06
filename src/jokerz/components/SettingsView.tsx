@@ -37,6 +37,9 @@ import { testDiscordWebhook, testSlackWebhook } from '../engine/webhooks';
 import DailySummarySettings from './DailySummarySettings';
 import MonitorSettings from './MonitorSettings';
 import AccountsStatusPanel from './AccountsStatusPanel';
+import AlertChannelsSettings from './AlertChannelsSettings';
+import AccountHealthPanel from './AccountHealthPanel';
+import UpdatesCard from './UpdatesCard';
 import { listSessions, clearAllSessions, clearSession, SessionSummary } from '../engine/session';
 import { resetProxyIntelligence } from '../engine/proxyIntelligence';
 import { bus } from '../engine/EventBus';
@@ -744,6 +747,7 @@ export default function SettingsView() {
           {/* GENERAL */}
           {activeTab === 'general' && (
             <div className="space-y-6">
+              <UpdatesCard />
               <div className="bg-[#0F0F0F] border-t border-[#1A1A1A] p-6">
                 <h2 className="text-sm font-bold uppercase tracking-widest text-white mb-2">Engine</h2>
                 <p className="text-[10px] text-[#555] mb-4 uppercase tracking-widest">
@@ -994,6 +998,7 @@ export default function SettingsView() {
                   </div>
                   <MonitorSettings settings={settings} update={update} inputClass={inputClass} />
                   <DailySummarySettings settings={settings} update={update} inputClass={inputClass} />
+                  <AlertChannelsSettings settings={settings} update={update} inputClass={inputClass} />
                   <div>
                     <label className="text-[10px] uppercase font-bold text-[#555] mb-2 block">
                       Success Webhook
@@ -1871,6 +1876,7 @@ export default function SettingsView() {
           {activeTab === 'accounts' && (
             <div className="space-y-4">
               <AccountsStatusPanel settings={settings} />
+              <AccountHealthPanel settings={settings} />
               {/* Site folders */}
               <div className="flex flex-wrap gap-1 border-b border-[#1A1A1A] pb-0">
                 {STORE_FOLDERS.map((f) => {

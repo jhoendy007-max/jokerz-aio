@@ -19,10 +19,10 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --test scripts/*.test.mjs && node --experimental-strip-types --test src/jokerz/engine/alertDedupe.test.ts src/jokerz/engine/apiTypes.test.ts src/jokerz/lib/drops.test.ts src/jokerz/lib/backup.test.ts src/jokerz/lib/monitorHistory.test.ts src/jokerz/lib/alertImage.test.ts src/jokerz/lib/dailySummary.test.ts src/jokerz/lib/monitorPolicy.test.ts src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts",
+    "test": "node --test scripts/*.test.mjs && node --experimental-strip-types --test src/jokerz/engine/alertDedupe.test.ts src/jokerz/engine/apiTypes.test.ts src/jokerz/lib/drops.test.ts src/jokerz/lib/backup.test.ts src/jokerz/lib/monitorHistory.test.ts src/jokerz/lib/alertImage.test.ts src/jokerz/lib/dailySummary.test.ts src/jokerz/lib/monitorPolicy.test.ts src/jokerz/lib/extras.test.ts src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test:core": "node --test scripts/monitor-common.test.mjs scripts/product-image.test.mjs scripts/monitor-status.test.mjs scripts/login-guard.test.mjs scripts/browser-smoke-verdict.test.mjs scripts/grok-pwa-plugin.test.mjs scripts/migration-plan.test.mjs scripts/preview.test.mjs scripts/sign-out-plan.test.mjs && node --experimental-strip-types --test src/jokerz/engine/alertDedupe.test.ts src/jokerz/engine/apiTypes.test.ts src/jokerz/lib/drops.test.ts src/jokerz/lib/backup.test.ts src/jokerz/lib/monitorHistory.test.ts src/jokerz/lib/alertImage.test.ts src/jokerz/lib/dailySummary.test.ts src/jokerz/lib/monitorPolicy.test.ts"
+    "test:core": "node --test scripts/monitor-common.test.mjs scripts/product-image.test.mjs scripts/monitor-status.test.mjs scripts/login-guard.test.mjs scripts/extras.test.mjs scripts/browser-smoke-verdict.test.mjs scripts/grok-pwa-plugin.test.mjs scripts/migration-plan.test.mjs scripts/preview.test.mjs scripts/sign-out-plan.test.mjs && node --experimental-strip-types --test src/jokerz/engine/alertDedupe.test.ts src/jokerz/engine/apiTypes.test.ts src/jokerz/lib/drops.test.ts src/jokerz/lib/backup.test.ts src/jokerz/lib/monitorHistory.test.ts src/jokerz/lib/alertImage.test.ts src/jokerz/lib/dailySummary.test.ts src/jokerz/lib/monitorPolicy.test.ts src/jokerz/lib/extras.test.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

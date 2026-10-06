@@ -15,6 +15,8 @@ import { startManualLogin, manualLoginStatus, saveManualLogin, cancelManualLogin
 import { guardedLogin, loginGuardStatus, clearLoginPause } from "./login-guard.mjs";
 import { coalesceMonitor, monitorCoalesceStats, monitorKey } from "./monitor-coalesce.mjs";
 import { probeProduct } from "./product-probe.mjs";
+import { handleExtraApi } from "./aio-api-extra.mjs";
+import { installFileLogger } from "./file-log.mjs";
 import { runWalmartCheckout, runWalmartLogin } from "./walmart-checkout.mjs";
 import { runWalmartDrawing } from "./walmart-drawing.mjs";
 import { runPokemonCheckout } from "./pokemon-checkout.mjs";
@@ -267,6 +269,8 @@ export async function handleAioApi(req, res) {
     json(res, 204, { ok: true });
     return true;
   }
+
+  if (await handleExtraApi(req, res, { path, method, url, json, readBody })) return true;
 
   if ((path === "/health" || path === "/api/health") && method === "GET") {
     json(res, 200, {
@@ -788,6 +792,7 @@ export function aioApiVitePlugin() {
   return {
     name: "jokerz-aio-api",
     configureServer(server) {
+      installFileLogger();
       server.middlewares.use(async (req, res, next) => {
         try {
           if (!isAioApiPath(req.url || "")) {
@@ -810,6 +815,7 @@ const isMain =
   Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMain) {
+  installFileLogger();
   const server = http.createServer((req, res) => {
     handleAioApi(req, res).catch((e) => {
       console.error("[jokerz-api]", e);

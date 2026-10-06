@@ -78,10 +78,10 @@ test('dueSummary: once per day, catch-up, first-run guard', () => {
   assert.equal(late.to, T0);
 });
 
-test('checkout log keeps 14 days', () => {
+test('checkout log keeps 90 days', () => {
   const m = new Map<string, string>();
   const st = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
   logCheckout({ ok: true, store: 'T', product: 'a', t: 0 }, st);
-  logCheckout({ ok: true, store: 'T', product: 'b', t: 15 * 24 * H }, st);
+  logCheckout({ ok: true, store: 'T', product: 'b', t: 91 * 24 * H }, st);
   assert.deepEqual(loadCheckoutLog(st).map((e) => e.product), ['b']);
 });

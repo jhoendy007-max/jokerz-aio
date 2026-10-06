@@ -14,30 +14,14 @@ exit /b 1
 :ready
 where node >nul 2>&1
 if errorlevel 1 (
-  echo Node is not on PATH. Run INSTALL-JOKERZ.bat first.
+  echo Node.js is not installed or not on PATH.
+  echo Install Node 20 LTS from https://nodejs.org then run INSTALL-JOKERZ.bat
   pause
   exit /b 1
 )
-if not exist "node_modules\" (
-  echo First run: npm install...
-  call npm.cmd install --no-fund --no-audit
-)
 
+rem One window: checks, installs what is missing, starts engine + UI, restarts on crash, opens the browser.
+node scripts\launcher.mjs
 echo.
-echo [1/2] Engine (harvest, monitor, checkout)
-start "Jokerz SERVER" cmd /k "cd /d "%CD%" && npm.cmd run server"
-
-timeout /t 3 /nobreak >nul
-
-echo [2/2] UI
-start "Jokerz UI" cmd /k "cd /d "%CD%" && npm.cmd run dev"
-
-timeout /t 6 /nobreak >nul
-start "" "http://127.0.0.1:8080/"
-
-echo.
-echo Both windows must stay open.
-echo Browser should open the UI.
-echo Harvest: Settings - Harvesters - Play
-echo Stop: STOP-JOKERZ.bat
+echo Jokerz AIO stopped.
 pause

@@ -24,6 +24,8 @@ const LABEL: Record<BackupSection, string> = {
   dashboardStats: 'Dashboard stats',
   drops: 'Upcoming drops',
   history: 'Price & stock history',
+  orders: 'Orders',
+  checkoutLog: 'Results history',
 };
 
 const input =

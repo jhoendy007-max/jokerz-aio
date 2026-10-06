@@ -1,4 +1,5 @@
 import { loadSettings } from '../lib/storage';
+import { sendExtraChannels } from '../lib/channels';
 
 export type WebhookKind = 'queue' | 'stock' | 'success' | 'decline' | 'info' | 'price' | 'ban';
 
@@ -416,6 +417,7 @@ export async function sendAlert(
   const [discord, slack] = await Promise.all([
     sendDiscordWebhook(kind, data),
     sendSlackWebhook(kind, data),
+    sendExtraChannels(kind, { ...data, productUrl: data.productUrl || productPageUrl(data.store, data.product) }).catch(() => null),
   ]);
   return { discord, slack };
 }

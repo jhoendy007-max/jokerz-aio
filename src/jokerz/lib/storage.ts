@@ -245,6 +245,8 @@ export function saveAccGenTasks(tasks: AccGenTask[]) {
 }
 
 // ─── Settings ──────────────────────────────────────────────────────
+export type AlertKindSetting = 'queue' | 'stock' | 'success' | 'decline' | 'info' | 'price' | 'ban';
+
 export interface BotSettings {
   /** ISP proxy: rotate every N requests */
   ispRotateEveryN?: number;
@@ -313,6 +315,21 @@ export interface BotSettings {
   sessionExpiryAlerts?: boolean;
   /** Daily Discord summary: restocks, price changes, checkouts */
   dailySummaryEnabled?: boolean;
+  // Extra alert channels (lib/channels.ts)
+  telegramEnabled?: boolean;
+  telegramToken?: string;
+  telegramChatId?: string;
+  telegramKinds?: AlertKindSetting[];
+  browserNotifyEnabled?: boolean;
+  browserNotifySound?: boolean;
+  browserNotifyKinds?: AlertKindSetting[];
+  emailAlertsEnabled?: boolean;
+  emailAlertUser?: string;
+  emailAlertPass?: string;
+  emailAlertTo?: string;
+  emailAlertKinds?: AlertKindSetting[];
+  /** Telegram commands (/status, /start, /stop…) */
+  remoteCommandsEnabled?: boolean;
   /** Local time "HH:MM" (default 21:00) */
   dailySummaryTime?: string;
   /** Optional separate webhook (falls back to discordWebhook) */

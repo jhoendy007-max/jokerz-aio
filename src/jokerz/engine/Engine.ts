@@ -8,6 +8,7 @@ import { BandaiModule } from './modules/bandai';
 import { TaskStatus } from '../types';
 import { loadSettings } from '../lib/storage';
 import { logCheckout } from '../lib/dailySummary';
+import { recordAppOrder } from '../lib/orders';
 import { hydrateSessions } from './session';
 import { hydrateProxyIntelligence } from './proxyIntelligence';
 import { exponentialBackoff, staggerDelay, jitterDelay } from './notify';
@@ -91,7 +92,12 @@ export class Engine {
     if (event.type === 'TASK_STATUS') this.recountActive();
     if (event.type === 'CHECKOUT_SUCCESS') {
       const d = event.data;
-      logCheckout({ ok: true, store: d.store, product: d.product, price: d.price, quantity: Number(d.quantity) || 1, orderNumber: d.orderNumber, dryRun: Boolean(d.dryRun) });
+      const okCfg = this.tasks.get(event.taskId)?.config;
+      const account = String((okCfg?.extras as any)?.accountEmail || '').trim().toLowerCase() || undefined;
+      logCheckout({ ok: true, store: d.store, product: d.product, price: d.price, quantity: Number(d.quantity) || 1, orderNumber: d.orderNumber, dryRun: Boolean(d.dryRun), account, profile: d.profile, taskId: event.taskId });
+      if (!d.dryRun) {
+        recordAppOrder({ store: d.store, product: d.product, orderNumber: d.orderNumber, total: d.price, quantity: Number(d.quantity) || 1, account, profile: d.profile });
+      }
       if (!d.dryRun) {
         // dry runs are logged but never counted as purchases
         this.stats.successToday++;
@@ -104,7 +110,7 @@ export class Engine {
     }
     if (event.type === 'CHECKOUT_FAILED') {
       const cfg = this.tasks.get(event.taskId)?.config;
-      logCheckout({ ok: false, store: String(cfg?.store || 'Unknown'), product: String(cfg?.product || event.taskId), reason: event.reason });
+      logCheckout({ ok: false, store: String(cfg?.store || 'Unknown'), product: String(cfg?.product || event.taskId), reason: event.reason, account: String((cfg?.extras as any)?.accountEmail || '').trim().toLowerCase() || undefined, taskId: event.taskId });
       this.stats.failsToday++;
       this.emitStats();
       // Stay armed — next monitor ping retries. Don't force user to Start/login again.

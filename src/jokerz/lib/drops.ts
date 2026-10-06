@@ -15,6 +15,11 @@ export interface Drop {
   note?: string;
   reminded?: boolean;
   createdAt: number;
+  /** Monitor-mode tasks started automatically shortly before the drop */
+  autoStartTaskIds?: string[];
+  /** minutes before `at` (default 10) */
+  autoStartMin?: number;
+  autoStarted?: boolean;
 }
 
 export const DROPS_KEY = 'jokerz_aio_drops';
@@ -118,6 +123,28 @@ export function startDropReminders(
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
           new Notification(`Drop in ${d.remindMin} min · ${d.store}`, { body: d.title });
         }
+      } catch {
+        /* */
+      }
+    }
+  };
+  tick();
+  const t = setInterval(tick, everyMs);
+  return () => clearInterval(t);
+}
+
+/** Starts the linked monitor tasks `autoStartMin` before each drop (once). Returns a stop function. */
+export function startDropAutoStart(start: (taskIds: string[], d: Drop) => void, { everyMs = 15_000 } = {}) {
+  const tick = () => {
+    const list = loadDrops();
+    const now = Date.now();
+    const due = list.filter((d) => d.autoStartTaskIds?.length && !d.autoStarted && now >= d.at - (d.autoStartMin ?? 10) * 60_000 && now < d.at + 30 * 60_000);
+    if (!due.length) return;
+    const ids = new Set(due.map((d) => d.id));
+    saveDrops(list.map((d) => (ids.has(d.id) ? { ...d, autoStarted: true } : d)));
+    for (const d of due) {
+      try {
+        start(d.autoStartTaskIds!, d);
       } catch {
         /* */
       }

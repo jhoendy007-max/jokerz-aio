@@ -21,3 +21,8 @@ Thumbs.db
 # runtime session data (never commit)
 server/.cookie-jars.json
 server/.shape-bank.json
+server/.login-history.json
+server/.update-config.json
+server/.remote-config.json
+backups/
+.jokerz-version

@@ -5,6 +5,8 @@ import {
   CheckCircle2,
   Clock,
   DatabaseBackup,
+  Stethoscope,
+  ScrollText,
   Check,
 } from 'lucide-react';
 import { useEngine } from '../hooks/useEngine';
@@ -21,6 +23,8 @@ import MonitorHealthPanel from './MonitorHealthPanel';
 import UpcomingDropsPanel from './UpcomingDropsPanel';
 import PriceHistoryPanel from './PriceHistoryPanel';
 import BackupDialog from './BackupDialog';
+import DiagnosticsDialog from './DiagnosticsDialog';
+import LogsDialog from './LogsDialog';
 
 function formatMoney(n: number) {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -116,6 +120,10 @@ function DashboardView() {
   ];
 
   const [showBackup, setShowBackup] = useState(false);
+  const [showDiag, setShowDiag] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
+  const hdrBtn =
+    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#1a1a1a] border border-[#262626] hover:border-[#7B2CBF] text-[11px] font-bold uppercase tracking-wide text-[#ccc] hover:text-white';
 
   return (
     <div className="p-5 space-y-4 max-w-[1400px] mx-auto min-h-full">
@@ -125,15 +133,21 @@ function DashboardView() {
           <h1 className="text-xl font-black italic uppercase tracking-tighter text-white">Dashboard</h1>
           <p className="text-[10px] text-[#555] mt-1 uppercase font-bold tracking-widest">Checkouts · running tasks · monitor health</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowBackup(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#1a1a1a] border border-[#262626] hover:border-[#7B2CBF] text-[11px] font-bold uppercase tracking-wide text-[#ccc] hover:text-white"
-        >
-          <DatabaseBackup size={13} /> Backup
-        </button>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => setShowDiag(true)} className={hdrBtn}>
+            <Stethoscope size={13} /> Diagnostics
+          </button>
+          <button type="button" onClick={() => setShowLogs(true)} className={hdrBtn}>
+            <ScrollText size={13} /> Logs
+          </button>
+          <button type="button" onClick={() => setShowBackup(true)} className={hdrBtn}>
+            <DatabaseBackup size={13} /> Backup
+          </button>
+        </div>
       </div>
       {showBackup && <BackupDialog onClose={() => setShowBackup(false)} />}
+      {showDiag && <DiagnosticsDialog onClose={() => setShowDiag(false)} />}
+      {showLogs && <LogsDialog onClose={() => setShowLogs(false)} />}
 
       {/* Stat cards — 4 equal */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">

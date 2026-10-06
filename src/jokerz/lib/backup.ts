@@ -24,6 +24,8 @@ export const BACKUP_KEYS = {
   dashboardStats: 'jokerz_aio_dashboard_stats',
   drops: 'jokerz_aio_drops',
   history: 'jokerz_aio_monitor_history',
+  orders: 'jokerz_aio_orders',
+  checkoutLog: 'jokerz_aio_checkout_log',
 } as const;
 export type BackupSection = keyof typeof BACKUP_KEYS;
 
@@ -40,7 +42,7 @@ export interface BackupFile {
 }
 
 const SECRET_KEY_RE =
-  /^(cardNumber|cvv|cvc|pass|password|totp|totpSecret|imapPass|sessionEncryptionKey|sessionPassphrase|\w*(ApiKey|apiKey|Key|Token|token|Secret|secret)|\w*Webhook)$/;
+  /^(cardNumber|cvv|cvc|pass|password|totp|totpSecret|imapPass|\w*Pass|sessionEncryptionKey|sessionPassphrase|\w*(ApiKey|apiKey|Key|Token|token|Secret|secret)|\w*Webhook)$/;
 /** Keys that look secret by name but are just settings. */
 const NOT_SECRET = new Set(['fingerprintProfileId', 'monitorKey', 'proxyKey', 'storeKey', 'sortKey']);
 

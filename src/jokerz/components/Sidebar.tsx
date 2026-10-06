@@ -6,6 +6,7 @@ import {
   Globe,
   Settings,
   UserPlus,
+  BarChart3,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -18,6 +19,7 @@ const navItems = [
   { id: 'tasks', label: 'Tasks', icon: ListTodo },
   { id: 'profiles', label: 'Profiles', icon: Users },
   { id: 'proxies', label: 'Proxies', icon: Globe },
+  { id: 'results', label: 'Results', icon: BarChart3 },
   { id: 'account-gen', label: 'Account Gen', icon: UserPlus },
   { id: 'settings', label: 'Settings', icon: Settings },
 ] as const;

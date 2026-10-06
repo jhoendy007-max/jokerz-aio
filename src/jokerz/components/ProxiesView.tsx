@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react';
 import { Globe, Plus, Trash2, Settings2, Activity, RefreshCw, ShieldOff, Eraser } from 'lucide-react';
 import { loadProxies, saveProxies, ProxyGroup } from '../lib/storage';
+import { loadProxyHealth, saveProxyHealth, applyTestResults, isDead, DEAD_AFTER } from '../lib/proxyHealth';
 import {
   recordProxyResult,
   getProxyIntelligenceSummary,
@@ -107,11 +108,23 @@ function ProxiesView() {
   const [newProxies, setNewProxies] = useState('');
   const [testingId, setTestingId] = useState<string | null>(null);
   const [testReport, setTestReport] = useState<{
+    groupId?: string;
     groupName: string;
     passed: number;
     failed: number;
-    results: { display?: string; ok: boolean; ms?: number; exitIp?: string; error?: string }[];
+    avgMs?: number;
+    results: { proxy?: string; display?: string; ok: boolean; ms?: number; exitIp?: string; error?: string; country?: string; city?: string; speed?: string }[];
   } | null>(null);
+  const [proxyHealth, setProxyHealth] = useState(() => loadProxyHealth());
+  const removeDead = (groupId?: string) => {
+    if (!groupId) return;
+    const g = proxyGroups.find((x) => x.id === groupId);
+    if (!g) return;
+    const dead = (g.proxies || []).filter((l) => isDead(proxyHealth[l.trim()]));
+    if (!dead.length || !window.confirm(`Remove ${dead.length} dead proxy line(s) from "${g.name}"? (failed ${DEAD_AFTER}+ tests in a row)`)) return;
+    const keep = (g.proxies || []).filter((l) => !isDead(proxyHealth[l.trim()]));
+    setProxyGroups((prev) => prev.map((x) => (x.id === groupId ? { ...x, proxies: keep, count: keep.length } : x)));
+  };
   const [scoreFilter, setScoreFilter] = useState<'all' | 'banned' | 'ok'>('all');
   const [scoreGroup, setScoreGroup] = useState<string>('all');
   const [scoreRows, setScoreRows] = useState<
@@ -189,7 +202,7 @@ function ProxiesView() {
       const res = await fetch(`${API_BASE}/api/proxy/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proxies: list.slice(0, 30), connectivityOnly: true }),
+        body: JSON.stringify({ proxies: list.slice(0, 200), connectivityOnly: true }),
       });
       const data = await res.json();
       if (!data.ok && data.error) {
@@ -201,11 +214,16 @@ function ProxiesView() {
         });
       } else {
         setTestReport({
+          groupId: group.id,
           groupName: group.name,
           passed: data.passed || 0,
           failed: data.failed || 0,
+          avgMs: data.avgMs,
           results: data.results || [],
         });
+        const nextHealth = applyTestResults(loadProxyHealth(), data.results || []);
+        saveProxyHealth(nextHealth);
+        setProxyHealth(nextHealth);
         for (const r of data.results || []) {
           if (r.proxy) {
             recordProxyResult(r.proxy, {
@@ -372,9 +390,20 @@ function ProxiesView() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[#00FF41]" />
                 {group.status}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#555]">
-                {group.type === 'ISP' ? 'ISP pool' : group.type}
-              </span>
+              {(() => {
+                const dead = (group.proxies || []).filter((l) => isDead(proxyHealth[l.trim()])).length;
+                return dead ? <span className="text-[10px] font-bold uppercase tracking-widest text-[#FF4B2B]">{dead} dead</span> : null;
+              })()}
+              <button
+                type="button"
+                onClick={() => testProxyGroup(group)}
+                disabled={testingId === group.id}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-[#1A1A1A] hover:border-[#7B2CBF] text-[10px] font-bold uppercase tracking-widest text-[#ccc] hover:text-white disabled:opacity-50"
+                title="Test speed, exit IP and country (max 200 lines)"
+              >
+                <RefreshCw size={11} className={testingId === group.id ? 'animate-spin' : ''} />
+                {testingId === group.id ? 'Testing…' : 'Test'}
+              </button>
             </div>
           </div>
         ))}
@@ -518,7 +547,7 @@ function ProxiesView() {
 
       {testReport && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setTestReport(null)}>
-          <div className="bg-[#15101c] border border-[#1A1A1A] rounded-xl w-full max-w-lg p-6 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#15101c] border border-[#1A1A1A] rounded-xl w-full max-w-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-white uppercase tracking-wider">Proxy Test · {testReport.groupName}</h2>
               <button onClick={() => setTestReport(null)} className="text-[#555] hover:text-white text-sm font-bold">✕</button>
@@ -527,8 +556,22 @@ function ProxiesView() {
               <span className="text-[#00FF41]">{testReport.passed} passed</span>
               {' · '}
               <span className="text-[#FF4B2B]">{testReport.failed} failed</span>
+              {testReport.avgMs ? <span> · avg {testReport.avgMs}ms</span> : null}
             </p>
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+            {(() => {
+              const dead = testReport.results.filter((r) => r.proxy && isDead(proxyHealth[r.proxy.trim()])).length;
+              return dead ? (
+                <div className="flex items-center justify-between gap-3 mb-3 px-3 py-2 rounded-sm border border-red-500/30 bg-red-500/10">
+                  <span className="text-[10px] text-[#ffb4a8]">
+                    {dead} proxy line(s) failed {DEAD_AFTER}+ tests in a row (dead)
+                  </span>
+                  <button type="button" onClick={() => removeDead(testReport.groupId)} className="text-[10px] font-bold uppercase tracking-widest text-white bg-[#FF4B2B]/80 hover:bg-[#FF4B2B] px-2.5 py-1 rounded-sm">
+                    Remove dead
+                  </button>
+                </div>
+              ) : null;
+            })()}
+            <div className="space-y-1.5 max-h-[50vh] overflow-y-auto">
               {testReport.results.map((r, i) => (
                 <div
                   key={i}
@@ -541,8 +584,13 @@ function ProxiesView() {
                   <span className={r.ok ? 'text-[#00FF41]' : 'text-[#FF4B2B]'}>{r.ok ? 'OK' : 'FAIL'}</span>
                   {' '}{r.display || 'proxy'}
                   {r.ms != null && <span className="text-[#555]"> · {r.ms}ms</span>}
+                  {r.speed && <span className={r.speed === 'fast' ? 'text-[#00FF41]' : r.speed === 'slow' ? 'text-amber-400' : 'text-[#aaa]'}> · {r.speed}</span>}
                   {r.exitIp && <span className="text-[#555]"> · ip {r.exitIp}</span>}
+                  {(r.country || r.city) && <span className="text-[#888]"> · {[r.city, r.country].filter(Boolean).join(', ')}</span>}
                   {r.error && <span className="text-[#FF4B2B]"> · {r.error}</span>}
+                  {r.proxy && proxyHealth[r.proxy.trim()]?.fails ? (
+                    <span className={isDead(proxyHealth[r.proxy.trim()]) ? 'text-[#FF4B2B] font-bold' : 'text-amber-400'}> · {isDead(proxyHealth[r.proxy.trim()]) ? 'DEAD' : `${proxyHealth[r.proxy.trim()].fails}× fail`}</span>
+                  ) : null}
                 </div>
               ))}
             </div>

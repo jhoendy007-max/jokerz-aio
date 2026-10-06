@@ -46,3 +46,18 @@ Tests: `scripts/monitor-status.test.mjs` (6) y `src/jokerz/lib/monitorPolicy.tes
 - **Monitor Health**: columnas OK % (respuestas válidas) y Avg ms.
 - Arreglos: la clasificación de errores ya no confunde palabras como "bottom" con un bloqueo; las sesiones de distintas tiendas con el mismo correo se guardan por separado.
 - Tests: `scripts/login-guard.test.mjs` (6).
+
+## Ronda 4 — herramientas del programa (1, 3, 4, 5, 6, 7, 9, 11, 12, 13, 14)
+
+- **Arranque con un clic (1):** `START-JOKERZ.bat` ahora usa `scripts/launcher.mjs`: revisa Node 20+, instala dependencias si faltan o cambiaron, instala Chromium si no hay navegador, arranca motor + interfaz en UNA ventana, los reinicia si se caen y abre el navegador. `CREATE-SHORTCUT.bat` crea el icono en el Escritorio.
+- **Diagnóstico (3):** Dashboard → Diagnostics. Revisa Node, servidor, dependencias, navegador, disco, carpeta de datos, memoria, internet, Target/Walmart/Pokémon Center, webhooks, Telegram, tareas, proxies muertos, cuentas sin contraseña, monitores y espacio usado. Botón "Report" descarga un JSON sin contraseñas.
+- **Logs en archivo (4):** `logs/jokerz-AAAA-MM-DD.log`, 14 días. Incluye los logs de las tareas y checkouts. Dashboard → Logs para buscar por texto, nivel y origen, y exportar ZIP. Contraseñas, tokens, webhooks y tarjetas se ocultan antes de escribir.
+- **Actualizaciones (5):** Settings → General → Updates. Con un token de GitHub de solo lectura revisa si hay versión nueva, muestra los cambios y la instala sin tocar tus datos (tareas, perfiles, sesiones, `.env`, logs). Guarda copia de los archivos cambiados en `backups/` y corre `npm install` si hace falta. "Restart now" si abriste con START-JOKERZ.bat.
+- **Prueba de proxies completa (6):** botón Test en cada grupo (hasta 200 líneas): velocidad, IP de salida, ciudad/país. Un proxy que falla 3 pruebas seguidas queda como "dead" y puedes quitarlo con "Remove dead". No rota nada solo.
+- **Salud de cuentas (7):** Settings → Accounts → Account health: logins buenos/fallidos (90 días), último login bueno, checkouts por cuenta y avisos (contraseña probablemente vieja, bloqueada, 2FA, sin usar 30+ días, sin contraseña).
+- **Resultados (9):** nueva pestaña Results: checkouts por día (gráfica), por tienda, top productos, % de éxito, total gastado, motivos de fallo. 7/30/90 días. El historial de checkouts ahora guarda 90 días.
+- **Registro de órdenes (11):** Results → Orders. Cada checkout real se agrega solo. "Scan email" lee (solo lectura) tus correos de confirmación/envío/entrega/cancelación de Target, Walmart, Pokémon Center y Bandai con IMAP y App Password. Estado editable y exportar CSV.
+- **Calendario de drops (12):** Import desde archivo o link (.ics, .csv, .json), sin duplicados. Cada drop puede arrancar tareas de MONITOR X minutos antes (nunca tareas de checkout).
+- **Más canales de alertas (13):** Telegram (con "Find chat id"), notificación del navegador con sonido y email (SMTP con App Password). Cada canal elige qué tipos de alerta recibe. Mismas reglas anti-repetición que Discord.
+- **Comandos por Telegram (14):** /status, /tasks, /start [tienda], /stop [tienda], /summary, /drops, /health, /help. Solo responde a tu chat. La ventana de la app tiene que estar abierta. (Discord no: necesitaría un bot con gateway aparte.)
+- Backup ahora incluye Orders y el historial de resultados.

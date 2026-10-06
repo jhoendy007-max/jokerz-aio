@@ -9,13 +9,15 @@
  */
 import { loadCookies } from "./cookie-persist.mjs";
 import { withLoginError } from "./monitor-status.mjs";
+import { recordLogin as defaultRecord } from "./login-history.mjs";
 import { storeKey, manualJarId } from "./manual-login.mjs";
 
 export const PAUSE_MIN = { WRONG_PASSWORD: 30, ACCOUNT_LOCKED: 60, NEEDS_2FA: 10, BLOCKED: 15, RATE_LIMITED: 5 };
 
 const inflight = new Map();
 const pauses = new Map(); // key → { until, errorCode, friendlyError }
-const last = new Map(); // key → { at, ok, errorCode?, friendlyError?, manual? }
+const last = new Map();
+const lastManualRec = new Map(); // key → { at, ok, errorCode?, friendlyError?, manual? }
 
 const keyOf = (store, email) => `${storeKey(store) || "x"}|${String(email || "").trim().toLowerCase()}`;
 
@@ -38,6 +40,7 @@ export function pauseFor(errorCode) {
  * @param {(body:object)=>Promise<object>} run the real login function
  */
 export async function guardedLogin(store, body = {}, run, deps = { loadCookies }, now = () => Date.now()) {
+  const record = deps.recordLogin || (deps.loadCookies === loadCookies ? defaultRecord : () => {});
   const email = String(body.email || "").trim();
   const k = keyOf(store, email);
 
@@ -45,6 +48,10 @@ export async function guardedLogin(store, body = {}, run, deps = { loadCookies }
     const jar = manualSession(store, email, deps, now());
     if (jar) {
       last.set(k, { at: now(), ok: true, manual: true });
+      if (!(lastManualRec.get(k) > now() - 10 * 60_000)) {
+        lastManualRec.set(k, now());
+        record({ store: storeKey(store), email, ok: true, manual: true });
+      }
       return {
         ok: true,
         fromCache: true,
@@ -84,6 +91,7 @@ export async function guardedLogin(store, body = {}, run, deps = { loadCookies }
     }
     if (r && r.ok === false && !r.errorCode) r = withLoginError(r);
     const at = now();
+    record({ store: storeKey(store), email, ok: Boolean(r?.ok), fromCache: Boolean(r?.fromCache), errorCode: r?.errorCode, friendlyError: r?.friendlyError });
     if (r?.ok) {
       pauses.delete(k);
       last.set(k, { at, ok: true });
@@ -125,4 +133,5 @@ export function _resetLoginGuard() {
   inflight.clear();
   pauses.clear();
   last.clear();
+  lastManualRec.clear();
 }

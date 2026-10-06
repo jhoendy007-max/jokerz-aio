@@ -7,8 +7,8 @@
 // ─── checkout log (fed by Engine CHECKOUT_SUCCESS / CHECKOUT_FAILED) ───
 export const CHECKOUT_LOG_KEY = 'jokerz_aio_checkout_log';
 export const LAST_SUMMARY_KEY = 'jokerz_aio_last_summary';
-const LOG_MAX = 500;
-const LOG_DAYS = 14;
+const LOG_MAX = 5000;
+const LOG_DAYS = 90;
 
 export interface CheckoutEvent {
   t: number;
@@ -21,6 +21,10 @@ export interface CheckoutEvent {
   orderNumber?: string;
   reason?: string;
   dryRun?: boolean;
+  /** account email used by the task */
+  account?: string;
+  profile?: string;
+  taskId?: string;
 }
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>;
