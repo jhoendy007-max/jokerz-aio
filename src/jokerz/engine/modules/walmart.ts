@@ -643,6 +643,7 @@ export const WalmartModule: StoreModule = {
                   store: 'Walmart',
                   product: currentSku,
                   title: result.title,
+                  imageUrl: (result as any).imageUrl,
                   status: 'IN_QUEUE',
                   taskId: id,
                 });
@@ -675,6 +676,7 @@ export const WalmartModule: StoreModule = {
                 store: 'Walmart',
                 product: task.product || id,
                 title: result.title,
+                imageUrl: (result as any).imageUrl,
                 price: `${lastPrice} → ${result.price}`,
                 status: `PRICE_${dir}`,
                 taskId: id,
@@ -692,6 +694,7 @@ export const WalmartModule: StoreModule = {
                   store: task.store || 'Walmart',
                   product: String(productId),
                   title: result.title,
+                  imageUrl: (result as any).imageUrl,
                   price: result.price,
                   status: 'IN_STOCK',
                   taskId: id,

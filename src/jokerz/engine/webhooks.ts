@@ -3,6 +3,8 @@ import { loadSettings } from '../lib/storage';
 export type WebhookKind = 'queue' | 'stock' | 'success' | 'decline' | 'info' | 'price' | 'ban';
 
 import { createAlertDedupe } from './alertDedupe';
+import { resolveImage, rememberImage } from '../lib/productImages';
+import { discordImagePlacement, slackImageFields, normalizeStyle } from '../lib/alertImage';
 
 const alertDedupe = createAlertDedupe();
 export const getAlertDedupeStats = () => alertDedupe.stats();
@@ -29,6 +31,10 @@ export interface WebhookPayload {
   provider?: string;
   banMinutes?: number;
   reason?: string;
+}
+
+function imageStyle(): 'large' | 'thumbnail' | 'off' {
+  return normalizeStyle((loadSettings() as { alertImageStyle?: string }).alertImageStyle);
 }
 
 function pickDiscordUrl(kind: WebhookKind): string {
@@ -136,7 +142,7 @@ function truncate(s: string, n: number) {
   return s.slice(0, n - 1) + '…';
 }
 
-function buildDiscordEmbed(kind: WebhookKind, data: WebhookPayload) {
+export function buildDiscordEmbed(kind: WebhookKind, data: WebhookPayload) {
   const color = data.color ?? COLORS[kind];
   const link = data.productUrl || productPageUrl(data.store, data.product);
   const displayTitle = data.title
@@ -217,9 +223,7 @@ function buildDiscordEmbed(kind: WebhookKind, data: WebhookPayload) {
     },
   };
 
-  if (data.imageUrl && /^https?:\/\//i.test(data.imageUrl)) {
-    embed.thumbnail = { url: data.imageUrl };
-  }
+  Object.assign(embed, discordImagePlacement(kind, imageStyle(), data.imageUrl));
 
   return embed;
 }
@@ -382,6 +386,7 @@ export async function sendSlackWebhook(
             text: lines.join('\n'),
             footer: 'JOKERZ AIO',
             ts: Math.floor(Date.now() / 1000),
+            ...slackImageFields(imageStyle(), data.imageUrl),
           },
         ],
       }),
@@ -402,6 +407,11 @@ export async function sendAlert(
   if (!gate.send) {
     console.debug(`[alerts] suppressed ${kind} ${data.store} ${data.product}: ${gate.reason}`);
     return { discord: false, slack: false, suppressed: true };
+  }
+  if (data.imageUrl) rememberImage(data.store, data.product, data.imageUrl);
+  else if (kind !== 'ban' && imageStyle() !== 'off' && data.store && data.product) {
+    const img = await resolveImage(data.store, data.product).catch(() => undefined);
+    if (img) data = { ...data, imageUrl: img };
   }
   const [discord, slack] = await Promise.all([
     sendDiscordWebhook(kind, data),

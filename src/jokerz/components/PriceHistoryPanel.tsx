@@ -9,6 +9,8 @@ import {
   clearHistory,
   type ProductHistory,
 } from '../lib/monitorHistory';
+import { getCachedImage } from '../lib/productImages';
+import ProductThumb from './ProductThumb';
 
 const fmtT = (t: number) =>
   new Date(t).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -97,7 +99,9 @@ function PriceHistoryPanel() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+          <div className="flex gap-3 mb-4 items-stretch">
+          <ProductThumb src={getCachedImage(h.store, h.product)} size={64} />
+          <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-2">
             {[
               ['Now', current?.inStock ? 'IN STOCK' : 'OUT OF STOCK', current?.inStock ? 'text-[#00FF41]' : 'text-[#FF4B2B]'],
               ['Price', money(stats?.last), 'text-white'],
@@ -110,6 +114,7 @@ function PriceHistoryPanel() {
                 <div className={`text-sm font-bold tabular-nums ${c}`}>{v}</div>
               </div>
             ))}
+          </div>
           </div>
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">

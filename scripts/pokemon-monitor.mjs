@@ -1,7 +1,7 @@
 /**
  * Pokémon Center monitor — stock + Queue-it. Guest region US.
  */
-import { fetchText, parseJsonLdProduct } from "./monitor-common.mjs";
+import { fetchText, parseJsonLdProduct, extractImage } from "./monitor-common.mjs";
 
 export function pokemonUrl(raw, region = "US") {
   const s = String(raw || "").trim();
@@ -35,6 +35,7 @@ export function parsePokemonHtml(html, { status = 200, finalUrl = "" } = {}) {
     rateLimited: status === 429,
     price,
     title,
+    imageUrl: extractImage(html, "https://www.pokemoncenter.com/"),
     source: ld?.availability ? "json-ld" : "html",
     availabilityStatus: inQueue ? "QUEUE" : dd ? "DATADOME" : status === 429 ? "RATE_LIMITED" : inStock ? "IN_STOCK" : oos ? "OUT_OF_STOCK" : "UNKNOWN",
   };

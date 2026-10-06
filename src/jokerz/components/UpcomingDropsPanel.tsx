@@ -13,6 +13,8 @@ import {
   type DropStore,
 } from '../lib/drops';
 import { productPageUrl } from '../engine/webhooks';
+import { getCachedImage } from '../lib/productImages';
+import ProductThumb from './ProductThumb';
 
 const STORES: DropStore[] = ['Target', 'Walmart', 'Pokemon Center', 'Bandai', 'Other'];
 const REMIND = [0, 5, 10, 15, 30, 60];
@@ -173,6 +175,7 @@ function UpcomingDropsPanel() {
                 >
                   {formatCountdown(left)}
                 </div>
+                {d.product && <ProductThumb src={getCachedImage(d.store, d.product)} size={36} />}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-white truncate" title={d.title}>
                     {d.title}

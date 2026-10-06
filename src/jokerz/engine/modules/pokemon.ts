@@ -416,6 +416,7 @@ export const PokemonModule: StoreModule = {
                 store: 'Pokemon Center',
                 product,
                 title: result.title,
+                imageUrl: (result as any).imageUrl,
                 status: 'IN_QUEUE',
                 taskId: id,
                 extra: [result.queueProvider, result.queuePosition != null ? `position ${result.queuePosition}` : '']
@@ -454,6 +455,7 @@ export const PokemonModule: StoreModule = {
                   store: 'Pokemon Center',
                   product: task.product,
                   title: result.title,
+                  imageUrl: (result as any).imageUrl,
                   price: `${lastPrice} → ${result.price}`,
                   status: `PRICE_${dir}`,
                   taskId: id,
@@ -468,6 +470,7 @@ export const PokemonModule: StoreModule = {
                 store: 'Pokemon Center',
                 product,
                 title: result.title,
+                imageUrl: (result as any).imageUrl,
                 price: result.price,
                 status: 'IN_STOCK',
                 taskId: id,

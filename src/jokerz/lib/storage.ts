@@ -299,6 +299,8 @@ export interface BotSettings {
   discordWebhook: string;
   /** Seconds before the same stock/price/queue alert can repeat (0 = off). Default 300. */
   alertCooldownSec?: number;
+  /** Product photo in Discord/Slack alerts: large image, small thumbnail, or none. Default large. */
+  alertImageStyle?: 'large' | 'thumbnail' | 'off';
   slackWebhook: string;
   slackStockWebhook: string; // optional dedicated stock channel
   successWebhook: string;
@@ -419,6 +421,7 @@ export const defaultSettings: BotSettings = {
   },
   discordWebhook: '',
   alertCooldownSec: 300,
+  alertImageStyle: 'large',
   slackWebhook: '',
   slackStockWebhook: '',
   successWebhook: '',

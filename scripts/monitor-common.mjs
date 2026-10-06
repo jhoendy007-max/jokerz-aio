@@ -87,6 +87,40 @@ const IN_RE = /InStock|PreOrder|LimitedAvailability|OnlineOnly|BackOrder/i;
 const OUT_RE = /OutOfStock|SoldOut|Discontinued|InStoreOnly/i;
 
 /** Extract the first schema.org Product from JSON-LD blocks. */
+/** Normalize an image URL: https only, protocol-relative → https, strip whitespace. */
+export function normalizeImageUrl(u, base) {
+  let s = String(u || "").trim().replace(/&amp;/g, "&");
+  if (!s) return undefined;
+  if (s.startsWith("//")) s = "https:" + s;
+  else if (s.startsWith("/") && base) {
+    try {
+      s = new URL(s, base).toString();
+    } catch {
+      return undefined;
+    }
+  }
+  if (s.startsWith("http://")) s = "https://" + s.slice(7);
+  if (!/^https:\/\/[^\s"'<>]+$/i.test(s) || s.length > 1000) return undefined;
+  return s;
+}
+
+function ldImage(img) {
+  const first = [].concat(img || [])[0];
+  if (!first) return undefined;
+  return typeof first === "string" ? first : first.url || first.contentUrl || first.thumbnailUrl;
+}
+
+/** Product image from page HTML: JSON-LD image → og:image → twitter:image. */
+export function extractImage(html, base) {
+  const h = String(html || "");
+  const ld = parseJsonLdProduct(h);
+  if (ld?.image) return ld.image;
+  const meta =
+    h.match(/<meta[^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image)["'][^>]*content=["']([^"']+)["']/i) ||
+    h.match(/<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image)["']/i);
+  return normalizeImageUrl(meta?.[1], base);
+}
+
 export function parseJsonLdProduct(html) {
   const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
   let m;
@@ -115,6 +149,7 @@ export function parseJsonLdProduct(html) {
           availability: avail.replace(/^https?:\/\/schema\.org\//i, "") || undefined,
           inStock: avail ? IN_RE.test(avail) : undefined,
           outOfStock: avail ? OUT_RE.test(avail) : undefined,
+          ...(normalizeImageUrl(ldImage(n.image)) ? { image: normalizeImageUrl(ldImage(n.image)) } : {}),
         };
       }
     }

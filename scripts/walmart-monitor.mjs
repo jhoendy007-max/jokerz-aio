@@ -2,7 +2,7 @@
  * Walmart shipping/online-only stock. Ignores pickup / store aisle.
  * DRAWING sku → collectibles draw board.
  */
-import { fetchText, parseJsonLdProduct } from "./monitor-common.mjs";
+import { fetchText, parseJsonLdProduct, extractImage, normalizeImageUrl } from "./monitor-common.mjs";
 import { isDrawingProduct, scanWalmartDrawings } from "./walmart-drawing.mjs";
 
 const SHIP_IN = /IN_STOCK|AVAILABLE|PREORDER|PRE_ORDER|LIMITED/i;
@@ -33,6 +33,8 @@ function walk(node, acc, depth = 0) {
   if (node.offerId && !acc.offerId) acc.offerId = String(node.offerId);
   const price = node.price ?? node.currentPrice?.price ?? node.priceInfo?.currentPrice?.price;
   if (price != null && !acc.price) acc.price = `$${price}`;
+  const img = node.imageInfo?.thumbnailUrl || node.imageInfo?.allImages?.[0]?.url;
+  if (img && !acc.image) acc.image = normalizeImageUrl(img);
   if ((node.name || node.productName) && !acc.title) acc.title = String(node.name || node.productName).slice(0, 120);
   for (const k of Object.keys(node)) walk(node[k], acc, depth + 1);
 }
@@ -41,7 +43,7 @@ export function fromHtml(html) {
   const blocked = /px-captcha|perimeterx|_px3|access denied|error 456/i.test(html) && /blocked|press and hold|denied|456/i.test(html);
   const inQueue = /waiting room|high demand|we'll be with you|please wait while we|in line to shop/i.test(html);
   const m = html.match(/<script id="__NEXT_DATA__"[^>]*>([^<]+)<\/script>/);
-  const acc = { statuses: [], offerId: "", price: "", title: "" };
+  const acc = { statuses: [], offerId: "", price: "", title: "", image: undefined };
   if (m) {
     try {
       walk(JSON.parse(m[1]), acc);
@@ -79,6 +81,7 @@ export function fromHtml(html) {
     offerId: acc.offerId,
     price: acc.price || ld?.price || "",
     title: acc.title || ld?.title || "",
+    imageUrl: extractImage(html, "https://www.walmart.com/") || acc.image,
     blocked,
     source: m ? "next-data" : "html",
   };

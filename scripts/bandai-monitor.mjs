@@ -1,7 +1,7 @@
 /**
  * Premium Bandai US — shipping product stock from PDP HTML.
  */
-import { fetchText, parseJsonLdProduct } from "./monitor-common.mjs";
+import { fetchText, parseJsonLdProduct, extractImage } from "./monitor-common.mjs";
 
 export function bandaiUrl(raw) {
   const s = String(raw || "").trim();
@@ -27,6 +27,7 @@ export function parseBandaiHtml(html, { status = 200 } = {}) {
     rateLimited: status === 429,
     price: ld?.price || (html.match(/(?:USD|\$)\s*[\d,.]+/) || [])[0],
     title: ld?.title || (html.match(/<title>([^<]+)/i) || [])[1]?.replace(/\s+\|.*/, "").trim(),
+    imageUrl: extractImage(html, "https://p-bandai.com/"),
     source: ld?.availability ? "json-ld" : "html",
     availabilityStatus: blocked ? "BLOCKED" : status === 429 ? "RATE_LIMITED" : inStock ? "IN_STOCK" : oos ? "OUT_OF_STOCK" : "UNKNOWN",
   };

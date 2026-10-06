@@ -25,6 +25,8 @@ export interface StockResult {
   queuePosition?: number;
   price?: string;
   title?: string;
+  /** Product photo (https) — used in alerts */
+  imageUrl?: string;
   quantity?: number;
   ms?: number;
   error?: string;
@@ -76,6 +78,7 @@ export const MonitorResponseSchema = z
     queuePosition: optNum,
     price,
     title: optStr,
+    imageUrl: optStr,
     quantity: optNum,
     ms: optNum,
     error: optStr,

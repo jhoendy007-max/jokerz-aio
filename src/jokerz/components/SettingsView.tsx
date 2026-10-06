@@ -977,6 +977,20 @@ export default function SettingsView() {
                   </div>
                   <div>
                     <label className="text-[10px] uppercase font-bold text-[#555] mb-2 block">
+                      Product photo in alerts
+                    </label>
+                    <select
+                      value={settings.alertImageStyle ?? 'large'}
+                      onChange={(e) => update('alertImageStyle', e.target.value as 'large' | 'thumbnail' | 'off')}
+                      className={inputClass}
+                    >
+                      <option value="large">Large photo (stock / success / price) · thumbnail for the rest</option>
+                      <option value="thumbnail">Small thumbnail on every alert</option>
+                      <option value="off">No photo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-[#555] mb-2 block">
                       Success Webhook
                     </label>
                     <input

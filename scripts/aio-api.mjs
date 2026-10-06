@@ -9,6 +9,7 @@ import { checkTargetShipping } from "./target-monitor.mjs";
 import { checkWalmartShipping } from "./walmart-monitor.mjs";
 import { checkPokemonStock } from "./pokemon-monitor.mjs";
 import { checkBandaiStock } from "./bandai-monitor.mjs";
+import { lookupProductImage } from "./product-image.mjs";
 import { runWalmartCheckout, runWalmartLogin } from "./walmart-checkout.mjs";
 import { runWalmartDrawing } from "./walmart-drawing.mjs";
 import { runPokemonCheckout } from "./pokemon-checkout.mjs";
@@ -431,6 +432,18 @@ export async function handleAioApi(req, res) {
     const body = await readBody(req);
     clearLoginSession(body.email);
     json(res, 200, { ok: true });
+    return true;
+  }
+
+  if (path === "/api/product-image" && method === "GET") {
+    try {
+      json(res, 200, await lookupProductImage({
+        store: url.searchParams.get("store") || "",
+        product: url.searchParams.get("product") || "",
+      }));
+    } catch (e) {
+      json(res, 200, { ok: false, error: e?.message || String(e) });
+    }
     return true;
   }
 

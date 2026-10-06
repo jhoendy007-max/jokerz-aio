@@ -17,6 +17,7 @@ export type MonitorHealth = {
 };
 
 import { recordHistory } from './monitorHistory';
+import { rememberImage } from './productImages';
 
 const state = new Map<string, MonitorHealth>();
 const subs = new Set<() => void>();
@@ -24,6 +25,7 @@ let version = 0;
 
 export function recordMonitorHealth(store: string, product: string, data: any) {
   if (!data || typeof data !== 'object') return;
+  if (data.imageUrl) rememberImage(store, String(product), data.imageUrl);
   const key = `${store}:${product}`;
   const prev = state.get(key);
   const status = String(data.availabilityStatus || (data.inStock ? 'IN_STOCK' : data.error ? 'ERROR' : 'UNKNOWN'));
