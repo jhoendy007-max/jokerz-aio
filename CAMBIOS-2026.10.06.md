@@ -9,3 +9,15 @@
 - Fotos también en el Dashboard: historial de precio y Upcoming Drops.
 - Solo se aceptan URLs https (sin comillas ni espacios; `//` y `http://` se pasan a https).
 - Tests: `scripts/product-image.test.mjs` (5), `src/jokerz/lib/alertImage.test.ts` (3).
+
+## Resumen diario por Discord
+- Un mensaje al día (hora configurable, por defecto 21:00) con lo de las últimas 24 h:
+  - **Restocks**: hora, producto, tienda, precio y cuánto duró en stock (o "still in stock").
+  - **Cambios de precio**: antes → después y % (primero las mayores bajadas).
+  - **Checkouts**: completados (con nº de pedido, unidades y total gastado), fallidos con motivo, y dry runs aparte.
+  - Totales arriba y productos monitorizados.
+- Settings → Webhooks → "Daily summary": activar, hora, webhook propio opcional, omitir días vacíos, "Preview" y "Send now".
+- Se envía con la app abierta; si estaba cerrada a esa hora, se envía al abrirla (una sola vez por día).
+- Nuevo registro de checkouts (`jokerz_aio_checkout_log`, 14 días) alimentado desde el Engine, independiente de qué pantalla esté abierta.
+- Arreglo: el Engine ya no cuenta los dry runs como checkouts en las estadísticas.
+- `lib/dailySummary.ts` (lógica pura) + `lib/dailySummaryRunner.ts` + `components/DailySummarySettings.tsx`; 5 tests.

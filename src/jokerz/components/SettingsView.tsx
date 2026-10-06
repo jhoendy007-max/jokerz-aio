@@ -34,6 +34,7 @@ import {
   ProxyGroup,
 } from '../lib/storage';
 import { testDiscordWebhook, testSlackWebhook } from '../engine/webhooks';
+import DailySummarySettings from './DailySummarySettings';
 import { listSessions, clearAllSessions, clearSession, SessionSummary } from '../engine/session';
 import { resetProxyIntelligence } from '../engine/proxyIntelligence';
 import { bus } from '../engine/EventBus';
@@ -989,6 +990,7 @@ export default function SettingsView() {
                       <option value="off">No photo</option>
                     </select>
                   </div>
+                  <DailySummarySettings settings={settings} update={update} inputClass={inputClass} />
                   <div>
                     <label className="text-[10px] uppercase font-bold text-[#555] mb-2 block">
                       Success Webhook

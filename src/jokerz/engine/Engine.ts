@@ -7,6 +7,7 @@ import { PokemonModule } from './modules/pokemon';
 import { BandaiModule } from './modules/bandai';
 import { TaskStatus } from '../types';
 import { loadSettings } from '../lib/storage';
+import { logCheckout } from '../lib/dailySummary';
 import { hydrateSessions } from './session';
 import { hydrateProxyIntelligence } from './proxyIntelligence';
 import { exponentialBackoff, staggerDelay, jitterDelay } from './notify';
@@ -89,14 +90,21 @@ export class Engine {
     bus.emit(event);
     if (event.type === 'TASK_STATUS') this.recountActive();
     if (event.type === 'CHECKOUT_SUCCESS') {
-      this.stats.successToday++;
-      this.stats.totalCheckouts++;
+      const d = event.data;
+      logCheckout({ ok: true, store: d.store, product: d.product, price: d.price, quantity: Number(d.quantity) || 1, orderNumber: d.orderNumber, dryRun: Boolean(d.dryRun) });
+      if (!d.dryRun) {
+        // dry runs are logged but never counted as purchases
+        this.stats.successToday++;
+        this.stats.totalCheckouts++;
+      }
       this.armedForStock.delete(event.taskId);
       this.stopSessionKeepAlive(event.taskId);
       this.unbindTaskHarvest(event.taskId);
       this.emitStats();
     }
     if (event.type === 'CHECKOUT_FAILED') {
+      const cfg = this.tasks.get(event.taskId)?.config;
+      logCheckout({ ok: false, store: String(cfg?.store || 'Unknown'), product: String(cfg?.product || event.taskId), reason: event.reason });
       this.stats.failsToday++;
       this.emitStats();
       // Stay armed — next monitor ping retries. Don't force user to Start/login again.

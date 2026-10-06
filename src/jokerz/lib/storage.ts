@@ -301,6 +301,14 @@ export interface BotSettings {
   alertCooldownSec?: number;
   /** Product photo in Discord/Slack alerts: large image, small thumbnail, or none. Default large. */
   alertImageStyle?: 'large' | 'thumbnail' | 'off';
+  /** Daily Discord summary: restocks, price changes, checkouts */
+  dailySummaryEnabled?: boolean;
+  /** Local time "HH:MM" (default 21:00) */
+  dailySummaryTime?: string;
+  /** Optional separate webhook (falls back to discordWebhook) */
+  dailySummaryWebhook?: string;
+  /** Don't send on days with nothing to report */
+  dailySummarySkipEmpty?: boolean;
   slackWebhook: string;
   slackStockWebhook: string; // optional dedicated stock channel
   successWebhook: string;
@@ -422,6 +430,10 @@ export const defaultSettings: BotSettings = {
   discordWebhook: '',
   alertCooldownSec: 300,
   alertImageStyle: 'large',
+  dailySummaryEnabled: false,
+  dailySummaryTime: '21:00',
+  dailySummaryWebhook: '',
+  dailySummarySkipEmpty: false,
   slackWebhook: '',
   slackStockWebhook: '',
   successWebhook: '',
