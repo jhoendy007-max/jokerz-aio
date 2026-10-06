@@ -35,6 +35,8 @@ import {
 } from '../lib/storage';
 import { testDiscordWebhook, testSlackWebhook } from '../engine/webhooks';
 import DailySummarySettings from './DailySummarySettings';
+import MonitorSettings from './MonitorSettings';
+import AccountsStatusPanel from './AccountsStatusPanel';
 import { listSessions, clearAllSessions, clearSession, SessionSummary } from '../engine/session';
 import { resetProxyIntelligence } from '../engine/proxyIntelligence';
 import { bus } from '../engine/EventBus';
@@ -990,6 +992,7 @@ export default function SettingsView() {
                       <option value="off">No photo</option>
                     </select>
                   </div>
+                  <MonitorSettings settings={settings} update={update} inputClass={inputClass} />
                   <DailySummarySettings settings={settings} update={update} inputClass={inputClass} />
                   <div>
                     <label className="text-[10px] uppercase font-bold text-[#555] mb-2 block">
@@ -1867,6 +1870,7 @@ export default function SettingsView() {
           {/* ACCOUNTS — Refract: email + password only. Login lives on the task. */}
           {activeTab === 'accounts' && (
             <div className="space-y-4">
+              <AccountsStatusPanel settings={settings} />
               {/* Site folders */}
               <div className="flex flex-wrap gap-1 border-b border-[#1A1A1A] pb-0">
                 {STORE_FOLDERS.map((f) => {

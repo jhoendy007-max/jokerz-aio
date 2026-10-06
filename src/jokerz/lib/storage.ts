@@ -301,6 +301,16 @@ export interface BotSettings {
   alertCooldownSec?: number;
   /** Product photo in Discord/Slack alerts: large image, small thumbnail, or none. Default large. */
   alertImageStyle?: 'large' | 'thumbnail' | 'off';
+  /** Slow monitors down when a product is stable (never faster than your delay). Default true. */
+  adaptivePolling?: boolean;
+  /** Monitor watchdog: minutes without a valid response before "stalled" (default 5) */
+  monitorStallMinutes?: number;
+  /** Monitor watchdog: errors in a row before "stalled" (default 10) */
+  monitorStallErrors?: number;
+  /** Discord alert when a monitor stalls / recovers (default true) */
+  monitorStallAlerts?: boolean;
+  /** Discord alert when an account session is expiring / expired (default true) */
+  sessionExpiryAlerts?: boolean;
   /** Daily Discord summary: restocks, price changes, checkouts */
   dailySummaryEnabled?: boolean;
   /** Local time "HH:MM" (default 21:00) */
@@ -430,6 +440,11 @@ export const defaultSettings: BotSettings = {
   discordWebhook: '',
   alertCooldownSec: 300,
   alertImageStyle: 'large',
+  adaptivePolling: true,
+  monitorStallMinutes: 5,
+  monitorStallErrors: 10,
+  monitorStallAlerts: true,
+  sessionExpiryAlerts: true,
   dailySummaryEnabled: false,
   dailySummaryTime: '21:00',
   dailySummaryWebhook: '',

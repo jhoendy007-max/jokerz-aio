@@ -1,5 +1,5 @@
 import { parseApi, MonitorResponseSchema, ApiResponseSchema, stockFromMonitor, rateLimitWaitMs, rlFields, type StockResult } from '../apiTypes';
-import { recordMonitorHealth } from '../../lib/monitorHealth';
+import { recordMonitorHealth, adaptivePollDelay } from '../../lib/monitorHealth';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
 import { log, setStatus, sleep } from './base';
 import { jitterDelay, playAlertSound, exponentialBackoff } from '../notify';
@@ -69,6 +69,9 @@ async function checkBandaiStock(
       inStock: !!data.inStock,
       price: data.price,
       title: data.title,
+      imageUrl: data.imageUrl,
+      state: data.state,
+      reason: data.reason,
       ms: data.ms,
       error: data.error,
       availabilityStatus: data.availabilityStatus,
@@ -79,6 +82,7 @@ async function checkBandaiStock(
     };
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    recordMonitorHealth('Bandai', sku, { ok: false, inStock: false, error: isCorsOrNetworkError(err) ? 'Backend offline — start with: npm run server' : err instanceof Error ? err.message : String(err) });
     if (isCorsOrNetworkError(err)) {
       return { inStock: false, error: 'Backend offline — start with: npm run server' };
     }
@@ -441,7 +445,7 @@ export const BandaiModule: StoreModule = {
               }
             }
 
-        await sleep(jitterDelay(pollDelay, settings?.jitterPercent ?? 20), signal);
+        await sleep(jitterDelay(adaptivePollDelay('Bandai', sku, pollDelay), settings?.jitterPercent ?? 20), signal);
         }
       }
 

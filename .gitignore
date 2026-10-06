@@ -17,3 +17,7 @@ logs/
 .DS_Store
 Thumbs.db
 .vercel/
+
+# runtime session data (never commit)
+server/.cookie-jars.json
+server/.shape-bank.json

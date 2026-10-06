@@ -10,6 +10,9 @@ import { checkWalmartShipping } from "./walmart-monitor.mjs";
 import { checkPokemonStock } from "./pokemon-monitor.mjs";
 import { checkBandaiStock } from "./bandai-monitor.mjs";
 import { lookupProductImage } from "./product-image.mjs";
+import { withMonitorState, withLoginError } from "./monitor-status.mjs";
+import { startManualLogin, manualLoginStatus, saveManualLogin, cancelManualLogin, accountsStatus } from "./manual-login.mjs";
+import { probeProduct } from "./product-probe.mjs";
 import { runWalmartCheckout, runWalmartLogin } from "./walmart-checkout.mjs";
 import { runWalmartDrawing } from "./walmart-drawing.mjs";
 import { runPokemonCheckout } from "./pokemon-checkout.mjs";
@@ -18,6 +21,7 @@ import { detectCaptcha } from "./captcha-detect.mjs";
 import {
   runTargetLogin,
   getLoginJob,
+  listLoginJobs,
   listLoginSessions,
   clearLoginSession,
   runTargetKeepAlive,
@@ -87,6 +91,13 @@ function publicBank() {
 
 function json(res, status, body) {
   if (res.writableEnded) return;
+  if (typeof res.__decorate === "function" && body && typeof body === "object") {
+    try {
+      body = res.__decorate(body);
+    } catch {
+      /* keep original */
+    }
+  }
   const data = JSON.stringify(body);
   res.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
@@ -244,6 +255,11 @@ export async function handleAioApi(req, res) {
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
   const path = normalizePath(url.pathname);
   const method = (req.method || "GET").toUpperCase();
+
+  // One result shape for monitors (state + reason) and readable login errors.
+  const mon = path.match(/^\/api\/monitor\/(target|walmart|pokemon|bandai)$/);
+  if (mon) res.__decorate = (b) => withMonitorState({ target: "Target", walmart: "Walmart", pokemon: "Pokemon Center", bandai: "Bandai" }[mon[1]], b);
+  else if (/^\/api\/(target|walmart|pokemon|bandai)\/(login|session)$|^\/api\/target\/oauth2\/login$/.test(path)) res.__decorate = withLoginError;
 
   if (method === "OPTIONS") {
     json(res, 204, { ok: true });
@@ -432,6 +448,42 @@ export async function handleAioApi(req, res) {
     const body = await readBody(req);
     clearLoginSession(body.email);
     json(res, 200, { ok: true });
+    return true;
+  }
+
+  if (path === "/api/monitor/probe" && method === "POST") {
+    const body = await readBody(req);
+    try {
+      json(res, 200, await probeProduct(body));
+    } catch (e) {
+      json(res, 200, { ok: false, state: "ERROR", reason: e?.message || String(e) });
+    }
+    return true;
+  }
+
+  if (path === "/api/accounts/status" && method === "GET") {
+    json(res, 200, { ok: true, accounts: accountsStatus({ loginJobs: listLoginJobs() }) });
+    return true;
+  }
+
+  if (path === "/api/manual-login/start" && method === "POST") {
+    const body = await readBody(req);
+    json(res, 200, await startManualLogin(body));
+    return true;
+  }
+  if (path === "/api/manual-login/status" && method === "GET") {
+    const job = manualLoginStatus(url.searchParams.get("id") || "");
+    json(res, 200, job ? { ok: true, job } : { ok: false, error: "Not found" });
+    return true;
+  }
+  if (path === "/api/manual-login/save" && method === "POST") {
+    const body = await readBody(req);
+    json(res, 200, await saveManualLogin(String(body.id || "")));
+    return true;
+  }
+  if (path === "/api/manual-login/cancel" && method === "POST") {
+    const body = await readBody(req);
+    json(res, 200, await cancelManualLogin(String(body.id || "")));
     return true;
   }
 

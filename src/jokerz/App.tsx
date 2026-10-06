@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, Component, type ReactNode, memo } from 'react';
 import { startDropReminders } from './lib/drops';
 import { startDailySummary } from './lib/dailySummaryRunner';
+import { startWatchdogs } from './lib/monitorWatchdog';
 import { sendAlert, productPageUrl } from './engine/webhooks';
 import { AnimatePresence, motion } from 'motion/react';
 import Sidebar from './components/Sidebar';
@@ -70,6 +71,7 @@ const pageVariants = {
 
 export default function App() {
   useEffect(() => startDailySummary(), []);
+  useEffect(() => startWatchdogs(), []);
   // Drop reminders run app-wide (not only while the Dashboard is open).
   useEffect(
     () =>

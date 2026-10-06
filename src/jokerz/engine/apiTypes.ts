@@ -27,6 +27,10 @@ export interface StockResult {
   title?: string;
   /** Product photo (https) — used in alerts */
   imageUrl?: string;
+  /** Normalized by the server: IN_STOCK | OUT_OF_STOCK | QUEUE | BLOCKED | RATE_LIMITED | NOT_FOUND | ERROR | UNKNOWN */
+  state?: string;
+  /** Human explanation of `state` */
+  reason?: string;
   quantity?: number;
   ms?: number;
   error?: string;
@@ -79,6 +83,8 @@ export const MonitorResponseSchema = z
     price,
     title: optStr,
     imageUrl: optStr,
+    state: optStr,
+    reason: optStr,
     quantity: optNum,
     ms: optNum,
     error: optStr,

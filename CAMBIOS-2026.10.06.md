@@ -21,3 +21,17 @@
 - Nuevo registro de checkouts (`jokerz_aio_checkout_log`, 14 días) alimentado desde el Engine, independiente de qué pantalla esté abierta.
 - Arreglo: el Engine ya no cuenta los dry runs como checkouts en las estadísticas.
 - `lib/dailySummary.ts` (lógica pura) + `lib/dailySummaryRunner.ts` + `components/DailySummarySettings.tsx`; 5 tests.
+
+## Monitores y logins (9 mejoras)
+
+1. **Revisar producto al crear la tarea**: botón "Check product" en el formulario (Target / Walmart / Pokémon Center / Bandai). Muestra foto, título, precio y estado. Endpoint `POST /api/monitor/probe`.
+2. **Polling adaptativo**: nunca más rápido que tu delay; ×1.5 tras 10 min sin cambios, ×2 tras 30 min, ×3 tras 2 h (máx. 2 min); vuelve a tu delay 30 min antes de un drop programado. Ajuste en Settings → Webhooks → Monitors & sessions.
+3. **Monitor atascado**: STALLED si no hay respuesta válida en 5 min o hay 10 errores seguidos (configurable). Alerta Discord una vez y aviso al recuperarse. Badge y columna "Why" en Monitor Health.
+4. **Mismo formato en las 4 tiendas**: el servidor añade `state` y `reason` a cada respuesta de monitor.
+5. **Test monitor**: botón en Monitor Health; ejecuta el monitor una vez y muestra la respuesta cruda.
+6. **Login manual asistido**: Settings → Accounts → "Log in manually". Abre un navegador normal en el login de la tienda, entras tú y "Save session" guarda las cookies. No automatiza formularios.
+7. **Panel de cuentas**: ACTIVE / EXPIRING / EXPIRED / NO SESSION, esperando 2FA, último login, tiempo restante.
+8. **Aviso de sesión vencida**: alerta Discord cuando quedan < 1 h y cuando vence.
+9. **Errores de login claros**: `errorCode` + `friendlyError` en las rutas de login; se ven en logs de tareas y en Live Login.
+
+Tests: `scripts/monitor-status.test.mjs` (6) y `src/jokerz/lib/monitorPolicy.test.ts` (5).

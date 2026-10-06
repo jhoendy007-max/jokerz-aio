@@ -1,6 +1,6 @@
 import { parseApi, MonitorResponseSchema, ApiResponseSchema, stockFromMonitor, rateLimitWaitMs, rlFields, type StockResult } from '../apiTypes';
 type MonitorResult = StockResult;
-import { recordMonitorHealth } from '../../lib/monitorHealth';
+import { recordMonitorHealth, adaptivePollDelay } from '../../lib/monitorHealth';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
 import { log, setStatus, sleep } from './base';
 import { jitterDelay, playAlertSound, exponentialBackoff } from '../notify';
@@ -108,6 +108,9 @@ async function checkPokemon(
       queuePosition: data.queuePosition,
       price: data.price,
       title: data.title,
+      imageUrl: data.imageUrl,
+      state: data.state,
+      reason: data.reason,
       ms: data.ms,
       availabilityStatus: data.availabilityStatus,
       source: data.source || data.via,
@@ -123,6 +126,7 @@ async function checkPokemon(
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') throw err;
     if (isAbortError(err)) throw err;
+    recordMonitorHealth('Pokemon Center', product, { ok: false, inStock: false, error: isCorsOrNetworkError(err) ? 'Backend offline — start with: npm run server' : err instanceof Error ? err.message : String(err) });
     if (isCorsOrNetworkError(err)) {
       return { inStock: false, error: 'Backend offline — start with: npm run server' };
     }
@@ -553,7 +557,7 @@ export const PokemonModule: StoreModule = {
               }
             }
 
-        await sleep(jitterDelay(pollDelay, settings?.jitterPercent ?? 20), signal);
+        await sleep(jitterDelay(adaptivePollDelay('Pokemon Center', product, pollDelay), settings?.jitterPercent ?? 20), signal);
         }
       }
 

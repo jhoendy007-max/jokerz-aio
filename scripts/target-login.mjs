@@ -35,6 +35,10 @@ function pushStep(id, level, message) {
   jobs.set(id, j);
 }
 
+export function listLoginJobs() {
+  return [...jobs.values()].map(({ id, email, status, last, started }) => ({ id, email, status, last, started }));
+}
+
 export function getLoginJob(id) {
   return jobs.get(id) || null;
 }

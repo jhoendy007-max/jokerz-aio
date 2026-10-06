@@ -5,6 +5,9 @@ import { defaultsForStore, loadProfiles, loadProxies, loadSettings, ProxyGroup }
 import { accountsForStore } from '../lib/storeFolders';
 import { isAdmin, canTuneAdvancedEngine } from '../lib/access';
 import { CircleHelp, ChevronDown, ChevronRight, Folder } from 'lucide-react';
+import { CheckProductButton } from './ProductCheck';
+
+const firstProduct = (v: string) => String(v || '').split(/[\n,]+/).map((x) => x.trim()).filter(Boolean)[0] || '';
 
 /** Collapsible profile picker: expand group → entire group or one profile */
 function ProfilePicker({
@@ -594,6 +597,7 @@ export default function CreateTaskModal({ form, onChange, onClose, onSave, editi
                 placeholder="123221`1"
                 className="w-full bg-[#0F0F0F] border border-gray-700/50 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7B2CBF] transition-all"
               />
+              <div className="mt-2"><CheckProductButton store={'Pokemon Center'} product={firstProduct(form.urlsOrPids)} /></div>
             </div>
           )}
 
@@ -611,6 +615,7 @@ export default function CreateTaskModal({ form, onChange, onClose, onSave, editi
                 placeholder="e.g. 1012055696 or one TCIN per line"
                 className="w-full bg-[#0F0F0F] border border-gray-700/50 rounded-lg px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-[#7B2CBF] transition-all"
               />
+              <div className="mt-2"><CheckProductButton store={'Target'} product={firstProduct(form.inputList)} /></div>
               <p className="text-[10px] text-[#555] mt-1">
                 This is the product the monitor/checkout will use. Edit and Save to change TCIN.
               </p>
@@ -650,6 +655,7 @@ export default function CreateTaskModal({ form, onChange, onClose, onSave, editi
                   placeholder="19965460207"
                   className="w-full bg-[#0F0F0F] border border-gray-700/50 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#7B2CBF] transition-all"
                 />
+              <div className="mt-2"><CheckProductButton store={isBandai ? 'Bandai' : 'Walmart'} product={firstProduct(form.sku)} /></div>
               </div>
 
               {isWalmart && !isMonitor && (

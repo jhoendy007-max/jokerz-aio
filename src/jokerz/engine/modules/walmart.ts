@@ -1,5 +1,5 @@
 import { parseApi, MonitorResponseSchema, ApiResponseSchema, stockFromMonitor, rateLimitWaitMs, rlFields, type StockResult } from '../apiTypes';
-import { recordMonitorHealth } from '../../lib/monitorHealth';
+import { recordMonitorHealth, adaptivePollDelay } from '../../lib/monitorHealth';
 import { API_BASE } from '../apiBase';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
 import { log, setStatus, sleep } from './base';
@@ -234,6 +234,9 @@ async function checkWalmartStock(
           inQueue: !!data.inQueue,
           price: data.price,
           title: data.title,
+      imageUrl: data.imageUrl,
+      state: data.state,
+      reason: data.reason,
           ms: data.ms,
           error: data.error,
           availabilityStatus: data.availabilityStatus,
@@ -263,6 +266,7 @@ async function checkWalmartStock(
     if (err && typeof err === 'object' && (err as any).stockResult) {
       return (err as any).stockResult as StockResult;
     }
+    recordMonitorHealth('Walmart', sku, { ok: false, inStock: false, error: isCorsOrNetworkError(err) ? 'Backend offline — start with: npm run server' : err instanceof Error ? err.message : String(err) });
     if (isCorsOrNetworkError(err)) {
       return {
         inStock: false,
@@ -336,7 +340,7 @@ export const WalmartModule: StoreModule = {
       timeoutMs: 180000,
     });
     const ld = parseApi(ApiResponseSchema, lr);
-    if (!ld.ok && !ld.fromCache) throw new Error(ld.error || ld.message || 'Walmart login failed');
+    if (!ld.ok && !ld.fromCache) throw new Error((ld as any).friendlyError || ld.error || ld.message || 'Walmart login failed');
     log(emit, id, 'success', ld.fromCache ? `Sticky · ${account.email}` : `Logged in · ${account.email}`);
     try {
       await httpRequest(`${API_BASE}/api/harvest/task-bind`, {
@@ -764,7 +768,7 @@ export const WalmartModule: StoreModule = {
             }
 
         await maybeRotateCookies({ taskId: id, module: 'walmart', proxy, emit, signal, ticks, blocked: false });
-        await sleep(jitterDelay(pollDelay, settings?.jitterPercent ?? 20), signal);
+        await sleep(jitterDelay(adaptivePollDelay('Walmart', currentSku, pollDelay), settings?.jitterPercent ?? 20), signal);
         }
       }
 
@@ -816,7 +820,7 @@ export const WalmartModule: StoreModule = {
         });
         const ld = parseApi(ApiResponseSchema, lr);
         if (ld.ok) log(emit, id, 'success', ld.message || 'Login OK');
-        else log(emit, id, 'warn', ld.message || ld.error || 'Login soft-fail');
+        else log(emit, id, 'warn', (ld as any).friendlyError || ld.message || ld.error || 'Login soft-fail');
       } catch (e: any) {
         if (e?.name === 'AbortError') throw e;
         log(emit, id, 'warn', `Login skip: ${e?.message || e}`);

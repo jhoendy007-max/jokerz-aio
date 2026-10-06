@@ -64,7 +64,7 @@ export async function liveTestStoreAccount(
         message: `Login OK · ${d.cookieCount ?? (d.cookies || []).length ?? '?'} ck · ${d.ms || '?'}ms`,
       };
     }
-    return { ok: false, message: d.message || d.error || `HTTP ${r.status}` };
+    return { ok: false, message: d.friendlyError || d.message || d.error || `HTTP ${r.status}` };
   } catch (e: any) {
     return { ok: false, message: e?.message || String(e) };
   }

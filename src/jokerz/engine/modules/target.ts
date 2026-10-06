@@ -1,4 +1,4 @@
-import { recordMonitorHealth } from '../../lib/monitorHealth';
+import { recordMonitorHealth, adaptivePollDelay } from '../../lib/monitorHealth';
 import { parseApi, MonitorResponseSchema, ApiResponseSchema, stockFromMonitor, rateLimitWaitMs, rlFields, type StockResult } from '../apiTypes';
 import { API_BASE } from '../apiBase';
 import { StoreModule, EngineTaskConfig, EngineEvent } from '../types';
@@ -332,6 +332,9 @@ async function checkTargetStock(
       quantity: typeof data.quantity === 'number' ? data.quantity : undefined,
       price: data.price,
       title: data.title,
+      imageUrl: data.imageUrl,
+      state: data.state,
+      reason: data.reason,
       ms: data.ms,
       error: data.error,
       availabilityStatus: data.availabilityStatus,
@@ -346,6 +349,7 @@ async function checkTargetStock(
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') throw err;
     if (isAbortError(err)) throw err;
+    recordMonitorHealth('Target', tcin, { ok: false, inStock: false, error: isCorsOrNetworkError(err) ? 'Backend offline — start with: npm run server' : err instanceof Error ? err.message : String(err) });
     if (isCorsOrNetworkError(err)) {
       return {
         inStock: false,
@@ -451,7 +455,10 @@ async function loginTargetOnTask(
     timeoutMs: 180000,
   });
   const ld = parseApi(ApiResponseSchema, lr);
-  if (!ld.ok) throw new Error(ld.message || ld.error || 'Login failed');
+  if (!ld.ok) {
+    const fe = (ld as any).friendlyError as string | undefined;
+    throw new Error(fe ? `${fe}${(ld as any).errorCode ? ` [${(ld as any).errorCode}]` : ''}` : ld.message || ld.error || 'Login failed');
+  }
   absorbPlaywrightCookies(id, ld.cookies, {
     proxy,
     proxyGroup: task.proxyGroup,
@@ -1092,7 +1099,7 @@ export const TargetModule: StoreModule = {
             }
 
         await maybeRotateCookies({ taskId: id, module: 'target-shape', proxy, emit, signal, ticks, blocked: false });
-        await sleep(jitterDelay(pollDelay, settings?.jitterPercent ?? 20), signal);
+        await sleep(jitterDelay(adaptivePollDelay('Target', tcin, pollDelay), settings?.jitterPercent ?? 20), signal);
         }
       }
 

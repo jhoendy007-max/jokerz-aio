@@ -1,5 +1,7 @@
 import { memo, useEffect, useState, useSyncExternalStore } from 'react';
-import { Gauge, ShieldOff, Activity, BellOff } from 'lucide-react';
+import { Gauge, ShieldOff, Activity, BellOff, FlaskConical, AlertTriangle } from 'lucide-react';
+import TestMonitorDialog from './TestMonitorDialog';
+import { stateClass } from './ProductCheck';
 import {
   getMonitorHealth,
   getMonitorHealthVersion,
@@ -35,6 +37,8 @@ function MonitorHealthPanel() {
   const rateLimited = rows.filter((r) => r.rateLimited).length;
   const proxyIgnored = rows.filter((r) => r.proxyIgnored).length;
   const dupes = getAlertDedupeStats().suppressed;
+  const stalled = rows.filter((r) => r.stalled).length;
+  const [test, setTest] = useState<{ store?: string; product?: string } | null>(null);
 
   return (
     <div className="rounded-lg bg-[#121212] border border-[#1c1c1c] p-4">
@@ -42,7 +46,15 @@ function MonitorHealthPanel() {
         <h3 className="text-[11px] font-semibold text-[#666] uppercase tracking-wider flex items-center gap-2">
           <Activity size={13} /> Monitor Health
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide ${
+              stalled ? 'bg-[#FF4B2B]/15 text-[#FF4B2B]' : 'bg-[#1a1a1a] text-[#555]'
+            }`}
+            title="Monitors with no valid response for a while or many errors in a row (Settings → Webhooks → Monitors)"
+          >
+            <AlertTriangle size={12} /> Stalled · {stalled}
+          </span>
           <span
             className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide ${
               rateLimited ? 'bg-amber-400/15 text-amber-300' : 'bg-[#1a1a1a] text-[#555]'
@@ -65,6 +77,13 @@ function MonitorHealthPanel() {
           >
             <BellOff size={12} /> Duplicate alerts blocked · {dupes}
           </span>
+          <button
+            type="button"
+            onClick={() => setTest({})}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-[#7B2CBF]/20 text-[#C77DFF] hover:bg-[#7B2CBF]/30"
+          >
+            <FlaskConical size={12} /> Test monitor
+          </button>
           {rows.length > 0 && (
             <button
               onClick={clearMonitorHealth}
@@ -92,6 +111,7 @@ function MonitorHealthPanel() {
                 <th className="py-1.5 pr-3 font-semibold">Store</th>
                 <th className="py-1.5 pr-3 font-semibold">Product</th>
                 <th className="py-1.5 pr-3 font-semibold">Status</th>
+                <th className="py-1.5 pr-3 font-semibold">Why</th>
                 <th className="py-1.5 pr-3 font-semibold">Retry in</th>
                 <th className="py-1.5 pr-3 font-semibold">Proxy</th>
                 <th className="py-1.5 pr-3 font-semibold text-right">429s</th>
@@ -104,9 +124,17 @@ function MonitorHealthPanel() {
                 return (
                   <tr key={r.key} className="border-t border-[#1a1a1a]">
                     <td className="py-1.5 pr-3 text-[#aaa] whitespace-nowrap">{r.store}</td>
-                    <td className="py-1.5 pr-3 text-white truncate max-w-[260px]" title={r.product}>{r.product}</td>
-                    <td className="py-1.5 pr-3">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${statusClass(r.status)}`}>{r.status}</span>
+                    <td className="py-1.5 pr-3 text-white truncate max-w-[220px]" title={r.title || r.product}>
+                      <button type="button" className="hover:underline text-left truncate max-w-[220px]" onClick={() => setTest({ store: r.store, product: r.product })} title="Test this monitor">
+                        {r.title || r.product}
+                      </button>
+                    </td>
+                    <td className="py-1.5 pr-3 whitespace-nowrap">
+                      {r.stalled && <span className="mr-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FF4B2B] text-white">STALLED</span>}
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${r.state ? stateClass(r.state) : statusClass(r.status)}`}>{r.state || r.status}</span>
+                    </td>
+                    <td className="py-1.5 pr-3 text-[#999] truncate max-w-[280px]" title={r.stalledWhy || r.reason || ''}>
+                      {r.stalled ? `${r.stalledWhy}${r.lastError ? ` · ${r.lastError}` : ''}` : r.reason || (r.errorStreak ? `${r.errorStreak} errors in a row` : '—')}
                     </td>
                     <td className="py-1.5 pr-3 tabular-nums text-amber-300">{retryLeft > 0 ? ago(retryLeft) : '—'}</td>
                     <td className="py-1.5 pr-3">
@@ -125,6 +153,7 @@ function MonitorHealthPanel() {
           </table>
         </div>
       )}
+      {test && <TestMonitorDialog initial={test} onClose={() => setTest(null)} />}
     </div>
   );
 }
