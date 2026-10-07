@@ -34,9 +34,21 @@ jobs:
         shell: cmd
         run: call INSTALL-JOKERZ.bat < NUL
 
-      - name: Tests
+      - name: Tests (Node 22 required)
+        if: matrix.node == 22
         shell: cmd
         run: npm test
+
+      - name: npm test refuses Node 20 with a clear message
+        if: matrix.node == 20
+        shell: pwsh
+        run: |
+          $out = cmd /c "npm test 2>&1"
+          $code = $LASTEXITCODE
+          $out | Select-Object -Last 6
+          if ($code -eq 0) { Write-Error "npm test should fail on Node 20"; exit 1 }
+          if (-not ($out -match 'Node 22')) { Write-Error "missing Node 22 message"; exit 1 }
+          exit 0
 
       - name: START-JOKERZ.bat (background)
         shell: pwsh

@@ -22,7 +22,7 @@
     "test": "node scripts/run-node-tests.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test:core": "node --test scripts/monitor-common.test.mjs scripts/product-image.test.mjs scripts/monitor-status.test.mjs scripts/login-guard.test.mjs scripts/extras.test.mjs scripts/browser-smoke-verdict.test.mjs scripts/grok-pwa-plugin.test.mjs scripts/migration-plan.test.mjs scripts/preview.test.mjs scripts/sign-out-plan.test.mjs && node --experimental-strip-types --test src/jokerz/engine/alertDedupe.test.ts src/jokerz/engine/apiTypes.test.ts src/jokerz/lib/drops.test.ts src/jokerz/lib/backup.test.ts src/jokerz/lib/monitorHistory.test.ts src/jokerz/lib/alertImage.test.ts src/jokerz/lib/dailySummary.test.ts src/jokerz/lib/monitorPolicy.test.ts src/jokerz/lib/extras.test.ts"
+    "test:core": "node scripts/require-node22.mjs && node --test scripts/monitor-common.test.mjs scripts/product-image.test.mjs scripts/monitor-status.test.mjs scripts/login-guard.test.mjs scripts/extras.test.mjs scripts/browser-smoke-verdict.test.mjs scripts/grok-pwa-plugin.test.mjs scripts/migration-plan.test.mjs scripts/preview.test.mjs scripts/sign-out-plan.test.mjs && node --experimental-strip-types --test src/jokerz/engine/alertDedupe.test.ts src/jokerz/engine/apiTypes.test.ts src/jokerz/lib/drops.test.ts src/jokerz/lib/backup.test.ts src/jokerz/lib/monitorHistory.test.ts src/jokerz/lib/alertImage.test.ts src/jokerz/lib/dailySummary.test.ts src/jokerz/lib/monitorPolicy.test.ts src/jokerz/lib/extras.test.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

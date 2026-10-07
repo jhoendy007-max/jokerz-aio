@@ -61,3 +61,10 @@ Tests: `scripts/monitor-status.test.mjs` (6) y `src/jokerz/lib/monitorPolicy.tes
 - **Más canales de alertas (13):** Telegram (con "Find chat id"), notificación del navegador con sonido y email (SMTP con App Password). Cada canal elige qué tipos de alerta recibe. Mismas reglas anti-repetición que Discord.
 - **Comandos por Telegram (14):** /status, /tasks, /start [tienda], /stop [tienda], /summary, /drops, /health, /help. Solo responde a tu chat. La ventana de la app tiene que estar abierta. (Discord no: necesitaría un bot con gateway aparte.)
 - Backup ahora incluye Orders y el historial de resultados.
+
+## Tests: Node 22 obligatorio
+
+- `npm test` y `npm run test:core` ahora exigen Node 22.6 o más nuevo. Con una versión vieja paran con un mensaje claro en vez de saltarse tests.
+- `npm test` encuentra solo todos los tests (`scripts/*.test.mjs` y `src/**/*.test.ts`), así ningún archivo nuevo se queda sin correr. Total actual: 299 tests.
+- `.nvmrc` = 22 para quien use nvm.
+- El programa (START-JOKERZ.bat) sigue funcionando con Node 20; solo los tests piden 22.
