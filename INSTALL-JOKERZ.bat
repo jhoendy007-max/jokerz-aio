@@ -107,7 +107,8 @@ echo.
 echo  Siguiente: doble click START-JOKERZ.bat
 echo  (o scripts\windows\START-JOKERZ.bat)
 echo.
-echo  Se abren 2 ventanas: SERVER + UI
+echo  Se abre 1 ventana (motor + interfaz) y el navegador.
+echo  Opcional: CREATE-SHORTCUT.bat pone el icono en el Escritorio.
 echo  Harvest: Settings - Harvesters - Play
 echo.
 pause
