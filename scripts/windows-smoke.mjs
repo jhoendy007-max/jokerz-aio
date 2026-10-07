@@ -100,6 +100,7 @@ await step("GET /api/diagnostics", async () => {
   writeFileSync(join(OUT, "diagnostics.json"), JSON.stringify(r.body, null, 2));
   const fails = r.body.checks.filter((c) => c.status === "fail");
   must(!fails.length, fails.map((c) => `${c.label}: ${c.detail}`).join(" | "));
+  for (const c of r.body.checks.filter((x) => x.status !== "ok")) console.log(`      ${c.status.toUpperCase()} ${c.label}: ${c.detail}${c.fix ? ` → ${c.fix}` : ""}`);
   return `${r.body.summary.ok} ok · ${r.body.summary.warn} warn`;
 });
 await step("POST /api/logs/client + search", async () => {
@@ -228,6 +229,7 @@ if (chromium) {
     }
     await browser.close();
     writeFileSync(join(OUT, "browser-errors.txt"), errors.join("\n"));
+    for (const e of errors.slice(0, 30)) console.log(`      ${e.slice(0, 300)}`);
     must(!bad.length, bad.join(" || "));
     return errors.length ? `${errors.length} console message(s) logged` : "";
   });

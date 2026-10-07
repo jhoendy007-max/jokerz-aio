@@ -48,6 +48,11 @@ jobs:
         shell: cmd
         run: node scripts\windows-smoke.mjs --out smoke-out --wait 300
 
+      - name: Show START window output
+        if: always()
+        shell: pwsh
+        run: if (Test-Path start.log) { Get-Content start.log -Tail 80 }
+
       - name: STOP-JOKERZ.bat
         if: always()
         shell: cmd
